@@ -1,5 +1,7 @@
 package com.example.capstone.user.controller;
 
+import com.example.capstone.user.dto.SignupResDto;
+import com.example.capstone.user.service.AuthService;
 import com.example.capstone.util.oauth2.dto.CustomOAuth2User;
 import com.example.capstone.user.dto.UserProfileReqDto;
 import com.example.capstone.user.entity.UserEntity;
@@ -16,9 +18,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @Slf4j
 @RestController
 @RequestMapping("/auth")
@@ -27,6 +26,7 @@ public class AuthController {
 
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final AuthService authService;
 
     @Operation(summary = "회원가입 API",
             description = "닉네임, 나이, 성별, MBTI, 이미지 입력")
@@ -35,12 +35,19 @@ public class AuthController {
             @AuthenticationPrincipal CustomOAuth2User userDetails,
             @Valid @RequestPart("userInfo") UserProfileReqDto profileRequestDto,
             @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) {
-        UserEntity user = userService.signup(userDetails, profileRequestDto, profileImage);
+        SignupResDto signupResDto = userService.signup(userDetails, profileRequestDto, profileImage);
+        return new ResponseEntity<>(signupResDto, HttpStatus.OK);
+    }
 
-        // 정식 토큰 발급
-        String token = jwtUtil.generateToken(user.getProviderId(), user.getEmail(), user.getNickname());
-        Map<String, Object> loginInfo = new HashMap<>();
-        loginInfo.put("token", token);
-        return new ResponseEntity<>(loginInfo, HttpStatus.OK);
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader("refreshToken") String refreshToken) {
+        authService.logout(refreshToken);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/reissue")
+    public ResponseEntity<?> reissue(@RequestHeader("refreshToken") String refreshToken) {
+        SignupResDto signupResDto = authService.reissue(refreshToken);
+        return new ResponseEntity<>(signupResDto, HttpStatus.OK);
     }
 }

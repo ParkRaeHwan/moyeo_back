@@ -36,9 +36,12 @@ spring:
 # 공통 설정
 jwt:
   secret: ${JWT_SECRET}
-  expirationMs: 1800000
-  temp:
+  access:
     expirationMs: 600000
+  refresh:
+    expiationMs: 86400000
+  temp:
+    expirationMs: 900000
 
 default:
   image-url: ${DEFAULT_IMAGE}
@@ -60,6 +63,17 @@ server:
   port: 8080
   address: 0.0.0.0
 
+# API 키 값
+openai:
+  api-key: ${OPENAI_API_KEY}
+kakao:
+  api:
+    key: ${KAKAO_API_KEY}
+openweather:
+  api:
+    key: ${OPENWEATHER_API_KEY}
+tourapi:
+  key: ${TOURAPI_KEY}
 
 ---
 
@@ -86,7 +100,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
+  data:
+    redis:
+      host: localhost
+      port: 6379
 ---
 
 # 배포
@@ -108,16 +125,7 @@ spring:
     properties:
       hibernate:
         format_sql: false
-
-openai:
-  api-key: ${OPENAI_API_KEY}
-kakao:
-  api:
-    key: ${KAKAO_API_KEY}
-
-openweather:
-  api:
-    key: ${OPENWEATHER_API_KEY}
-
-tourapi:
-  key: ${TOURAPI_KEY}
+  data:
+    redis:
+      host: redis
+      port: 6379

@@ -1,5 +1,7 @@
 package com.example.capstone.util.jwt.filter;
 
+import com.example.capstone.user.exception.InvalidTokenException;
+import com.example.capstone.user.exception.TokenExpiredException;
 import com.example.capstone.util.oauth2.dto.CustomOAuth2User;
 import com.example.capstone.util.oauth2.dto.OAuth2DTO;
 import com.example.capstone.util.jwt.JwtUtil;
@@ -26,52 +28,59 @@ public class JWTFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 해당 경로 검증 X
         String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/oauth2/")) {
+        if (requestURI.startsWith("/oauth2/") || requestURI.startsWith("/auth/reissue") || requestURI.startsWith("/auth/logout")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = parseJwt(request);
         CustomOAuth2User customOAuth2User;
+        
         // 임시 토큰 검증 (회원 가입 시)
-        if (requestURI.startsWith("/auth/signup")){
-            if (token == null || !jwtUtil.validateJwt(token) || !jwtUtil.getTypeFromJwt(token).equals("TEMP")){
-                filterChain.doFilter(request, response);
-                return;
+        try {
+            if (requestURI.startsWith("/auth/signup")) {
+                if (token == null || !jwtUtil.validateJwt(token) || !"TEMP".equals(jwtUtil.getTypeFromJwt(token))) {
+                    sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "Invalid temporary token");
+                    return;
+                }
+                customOAuth2User = new CustomOAuth2User(OAuth2DTO.builder()
+                        .providerId(jwtUtil.getProviderIdFromJwt(token))
+                        .email(jwtUtil.getEmailFromJwt(token))
+                        .build());
+            } else {
+                // 정식 토큰 발급
+                if (token == null || !jwtUtil.validateJwt(token) || !"ACCESS".equals(jwtUtil.getTypeFromJwt(token))) {
+                    sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "Invalid access token");
+                    return;
+                }
+                customOAuth2User = new CustomOAuth2User(OAuth2DTO.builder()
+                        .providerId(jwtUtil.getProviderIdFromJwt(token))
+                        .email(jwtUtil.getEmailFromJwt(token))
+                        .nickname(jwtUtil.getNicknameFromJwt(token))
+                        .build());
             }
-            String providerId = jwtUtil.getProviderIdFromJwt(token);
-            String email = jwtUtil.getEmailFromJwt(token);
 
-            customOAuth2User = new CustomOAuth2User(OAuth2DTO.builder()
-                    .providerId(providerId)
-                    .email(email)
-                    .build());
-        } 
-        // 정식 토큰 검증 (회원 가입 외 모든 요청)
-        else {
-            if (token == null || !jwtUtil.validateJwt(token) || !jwtUtil.getTypeFromJwt(token).equals("ACCESS")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-            String providerId = jwtUtil.getProviderIdFromJwt(token);
-            String email = jwtUtil.getEmailFromJwt(token);
-            String nickname = jwtUtil.getNicknameFromJwt(token);
-
-            customOAuth2User = new CustomOAuth2User(OAuth2DTO.builder()
-                    .providerId(providerId)
-                    .email(email)
-                    .nickname(nickname)
-                    .build());
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    customOAuth2User, null, customOAuth2User.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            filterChain.doFilter(request, response);
+            
+        } catch (TokenExpiredException e) {
+            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "Token has expired");
+        } catch (InvalidTokenException e) {
+            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "Invalid token");
         }
+    }
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(customOAuth2User, null, customOAuth2User.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        filterChain.doFilter(request, response);
+    private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.setStatus(status);
+        response.getWriter().write("{\"error\": \"" + message + "\"}");
     }
 
     private String parseJwt(HttpServletRequest request) {
         String authorization = request.getHeader("Authorization");
-
         if (authorization != null && authorization.startsWith("Bearer ")) {
             return authorization.substring(7);
         }

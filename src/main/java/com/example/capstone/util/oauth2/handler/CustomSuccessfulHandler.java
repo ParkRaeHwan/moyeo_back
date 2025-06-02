@@ -7,11 +7,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -19,6 +22,9 @@ import java.io.IOException;
 public class CustomSuccessfulHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtUtil jwtUtil;
+    private final RedisTemplate<String, String> redisTemplate;
+    @Value("${jwt.refresh.expiationMs}")
+    private long refreshExpiationMs;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -32,12 +38,18 @@ public class CustomSuccessfulHandler extends SimpleUrlAuthenticationSuccessHandl
 
         // 신규, 기존 사용자 구분해 redirect
         if (oAuth2User.getTempToken() != null) {
-            log.info("test token {}", oAuth2User.getTempToken());
-            response.sendRedirect(redirectUri + "?mode=register&token=" + oAuth2User.getTempToken());
+            log.info("temp {}", oAuth2User.getTempToken());
+            response.sendRedirect(redirectUri + "?mode=register" + oAuth2User.getTempToken());
         } else {
-            String jwtToken = jwtUtil.generateToken(oAuth2User.getProviderId(), oAuth2User.getEmail(), oAuth2User.getNickname());
-            log.info("test token {}", jwtToken);
-            response.sendRedirect(redirectUri + "?mode=login&token=" + jwtToken);
+            String accessToken = jwtUtil.generateToken("ACCESS", oAuth2User.getProviderId(), oAuth2User.getEmail(), oAuth2User.getNickname());
+            String refreshToken = jwtUtil.generateToken("REFRESH", oAuth2User.getProviderId(), oAuth2User.getEmail(), oAuth2User.getNickname());
+            log.info("access {}, refresh {}", accessToken, refreshToken);
+
+            // Todo: refreshToken Redis 저장
+            redisTemplate.opsForValue().set("REFRESH:" + oAuth2User.getNickname(), refreshToken, refreshExpiationMs, TimeUnit.MILLISECONDS);
+
+            String redirectUrl = redirectUri + "?mode=login&access=" + accessToken + "&refresh=" + refreshToken;
+            response.sendRedirect(redirectUrl);
         }
     }
 }
