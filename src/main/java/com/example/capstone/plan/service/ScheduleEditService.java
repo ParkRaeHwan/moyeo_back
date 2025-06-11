@@ -39,25 +39,28 @@ public class ScheduleEditService {
     private List<PlaceResponse> parseGptResponse(String json) throws Exception {
         JsonNode root = objectMapper.readTree(json);
 
-        if (!root.isArray()) {
-            throw new IllegalArgumentException("GPT 응답은 JSON 배열이어야 합니다.");
+        JsonNode placesNode;
+        if (root.isArray()) {
+            // 과거 형식 유지 대응 (fallback)
+            placesNode = root;
+        } else {
+            placesNode = root.path("places");
+            if (!placesNode.isArray()) {
+                throw new IllegalArgumentException("GPT 응답 내 'places' 필드는 JSON 배열이어야 합니다.");
+            }
         }
 
         List<PlaceResponse> result = new ArrayList<>();
-        for (JsonNode node : root) {
+        for (JsonNode node : placesNode) {
             String name = node.path("name").asText();
             String gptOriginalName = node.path("gptOriginalName").asText();
 
             KakaoPlaceDto kakao = kakaoMapClient.searchPlace(name);
 
-            if (kakao == null) {
-                continue;
-            }
+            if (kakao == null) continue;
 
             String matchedName = kakao.getPlaceName();
-            if (!matchedName.contains(name) && !name.contains(matchedName)) {
-                continue;
-            }
+            if (!matchedName.contains(name) && !name.contains(matchedName)) continue;
 
             PlaceResponse place = PlaceResponse.builder()
                     .name(name)
@@ -77,6 +80,8 @@ public class ScheduleEditService {
 
             result.add(place);
         }
+
         return result;
     }
+
 }
