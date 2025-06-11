@@ -19,11 +19,11 @@ public class HotelPromptBuilder {
 
             {
               "name": "%s",
-              "priceRange": "1박 가격대 (예: 90,000원 ~ 120,000원)",
+              "priceRange": "1박 가격대 (반드시 '숫자원 ~ 숫자원' 형식, 예: 90,000원 ~ 120,000원)",
               "address": "%s",
               "phone": "%s (없다면 빈 문자열로 표시)",
-              "checkIn": "체크인 시간 (예: 15:00)",
-              "checkOut": "체크아웃 시간 (예: 11:00)"
+              "checkIn": "체크인 시간 (반드시 HH:mm 형식의 시간만, 예: 15:00)",
+              "checkOut": "체크아웃 시간 (반드시 HH:mm 형식의 시간만, 예: 11:00)"
             }
 
             ⚠️ 반드시 위 JSON 형식 그대로 응답해야 하며

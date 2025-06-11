@@ -29,6 +29,10 @@ public class GptEditPromptBuilder {
               (예: '제주 전망 좋은 백반 맛집')
 
             반드시 다음 조건을 지켜줘:
+                        - 출력은 반드시 JSON 객체 하나로 구성되어야 하고, 다음 구조를 따라야 해:
+                          {
+                            "places": [ ... ]
+                          }
             - JSON 외의 설명은 절대 포함하지 말고, 출력은 반드시 평문 JSON 형태로만 할 것
             - 출력은 배열 형식으로, 입력 순서를 유지할 것
             - 각 장소 간 이동 시간은 도보, 대중교통, 차량 기준으로 모두 제공하되, 실제보다 15분 여유 있게 잡아줘.
@@ -42,16 +46,18 @@ public class GptEditPromptBuilder {
             - 입력한 장소 개수와 응답하는 JSON 개수는 반드시 1:1로 정확히 일치해야 해. 절대로 일부만 응답하지 마
             
             예시:
-            [
-              {
-                "name": "색달식당",
-                "type": "식사",
-                "estimatedCost": 10000,
-                "description": "제주 바다 전망이 좋은 백반 맛집",
-                "fromPrevious": { "walk": 12, "publicTransport": 8, "car": 5 },
-                "gptOriginalName": "제주 전망 좋은 백반 맛집"
-              }
-            ]
+                {
+                   "places": [
+                     {
+                       "name": "색달식당",
+                       "type": "식사",
+                       "estimatedCost": 10000,
+                       "description": "제주 바다 전망이 좋은 백반 맛집",
+                       "fromPrevious": { "walk": 12, "publicTransport": 8, "car": 5 },
+                       "gptOriginalName": "제주 전망 좋은 백반 맛집"
+                     }
+                   ]
+                 }
 
             다음 장소들을 처리해줘:
             """);
