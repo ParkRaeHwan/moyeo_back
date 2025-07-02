@@ -22,9 +22,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ScheduleRefinerService {
 
-    private final OpenAiClient openAiClient;
     private final KakaoMapClient kakaoMapClient;
-    private final GptPlaceDescriptionPromptBuilder gptPlaceDescriptionPromptBuilder;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final DayRepository dayRepository;
     private final PlaceRepository placeRepository;

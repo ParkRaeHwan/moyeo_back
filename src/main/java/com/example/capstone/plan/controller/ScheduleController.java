@@ -24,6 +24,13 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
     private final ScheduleEditService scheduleEditService;
+    private final ScheduleSaveService scheduleSaveService;
+    private final ScheduleRecreateService scheduleRecreateService;
+    private final ScheduleDeleteService scheduleDeleteService;
+    private final ScheduleQueryService scheduleQueryService;
+
+
+
 
     @Operation(summary = "스케줄 상세조회", description = "저장된 스케줄 ID로 전체 일정을 조회합니다.")
     @GetMapping("/full/{scheduleId}")
@@ -31,7 +38,7 @@ public class ScheduleController {
             @AuthenticationPrincipal CustomOAuth2User userDetails,
             @PathVariable Long scheduleId) {
 
-        FullScheduleResDto response = scheduleService.getFullSchedule(scheduleId, userDetails);
+        FullScheduleResDto response = scheduleQueryService.getFullSchedule(scheduleId, userDetails);
         return ResponseEntity.ok(response);
     }
 
@@ -40,21 +47,17 @@ public class ScheduleController {
     public ResponseEntity<List<SimpleScheduleResDto>> getScheduleList(
             @AuthenticationPrincipal CustomOAuth2User userDetails) {
 
-        List<SimpleScheduleResDto> response = scheduleService.getSimpleScheduleList(userDetails);
+        List<SimpleScheduleResDto> response = scheduleQueryService.getSimpleScheduleList(userDetails);
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "GPT 기반 여행일정 생성", description = "MBTI, 여행 성향, 예산 등을 기반으로 여행 일정을 생성합니다.")
     @PostMapping("/create")
     public ResponseEntity<FullScheduleResDto> createSchedule(@RequestBody ScheduleCreateReqDto request) {
-        try {
-            FullScheduleResDto response = scheduleService.generateFullSchedule(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(null);
-        }
+        FullScheduleResDto response = scheduleService.generateFullSchedule(request);
+        return ResponseEntity.ok(response);
     }
+
 
     @Operation(summary = "추천 일정 저장", description = "사용자가 확정한 여행 일정을 데이터베이스에 저장합니다.")
     @PostMapping("/save")
@@ -62,39 +65,31 @@ public class ScheduleController {
             @AuthenticationPrincipal CustomOAuth2User userDetails,
             @RequestBody ScheduleSaveReqDto request) {
 
-        ScheduleSaveResDto response = scheduleService.saveSchedule(request, userDetails);
+        ScheduleSaveResDto response = scheduleSaveService.saveSchedule(request, userDetails);
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "기존 일정을 제외한 일정 재생성", description = "create로 받은 일정에서 장소들을 제외하고 새로운 일정을 생성합니다.")
     @PostMapping("/recreate")
     public ResponseEntity<FullScheduleResDto> regenerate(@RequestBody ScheduleRecreateReqDto request) {
-        try {
-            FullScheduleResDto response = scheduleService.recreateSchedule(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(null);
-        }
+        FullScheduleResDto response = scheduleRecreateService.recreateSchedule(request);
+        return ResponseEntity.ok(response);
     }
+
 
     @Operation(summary = "일정 수정", description = "수정된 장소 리스트를 기반으로 하루 일정을 리빌딩합니다.")
     @PostMapping("/edit")
     public ResponseEntity<ScheduleEditResDto> rebuildDay(@RequestBody ScheduleEditReqDto request) {
-        try {
-            ScheduleEditResDto result = scheduleEditService.Edit(request.getNames());
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
+        ScheduleEditResDto result = scheduleEditService.editSchedule(request.getNames());
+        return ResponseEntity.ok(result);
     }
+
 
     @Operation(summary = "일정 삭제", description = "저장된 사용자의 여행 일정 삭제")
     @DeleteMapping("/delete/{scheduleId}")
     public ResponseEntity<?> deleteSchedule(@PathVariable Long scheduleId,
                                             @AuthenticationPrincipal CustomOAuth2User userDetails) {
-        scheduleService.deleteSchedule(scheduleId, userDetails);
+        scheduleDeleteService.deleteSchedule(scheduleId, userDetails);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

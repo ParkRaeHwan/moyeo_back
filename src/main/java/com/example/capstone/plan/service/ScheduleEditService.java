@@ -22,26 +22,30 @@ public class ScheduleEditService {
     private final KakaoMapClient kakaoMapClient;
     private final ObjectMapper objectMapper;
 
-    public ScheduleEditResDto Edit(List<String> names) throws Exception {
-        String prompt = promptBuilder.build(names);
-        String gptResponse = openAiClient.callGpt(prompt);
-        List<PlaceResponse> places = parseGptResponse(gptResponse);
+    public ScheduleEditResDto editSchedule(List<String> names) {
+        try {
+            String prompt = promptBuilder.build(names);
+            String gptResponse = openAiClient.callGpt(prompt);
+            List<PlaceResponse> places = parseGptResponse(gptResponse);
 
-        int total = places.stream().mapToInt(PlaceResponse::getEstimatedCost).sum();
+            int total = places.stream().mapToInt(PlaceResponse::getEstimatedCost).sum();
 
-        return ScheduleEditResDto.builder()
-                .totalEstimatedCost(total)
-                .places(places)
-                .build();
+            return ScheduleEditResDto.builder()
+                    .totalEstimatedCost(total)
+                    .places(places)
+                    .build();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
-
 
     private List<PlaceResponse> parseGptResponse(String json) throws Exception {
         JsonNode root = objectMapper.readTree(json);
 
         JsonNode placesNode;
         if (root.isArray()) {
-            // 과거 형식 유지 대응 (fallback)
             placesNode = root;
         } else {
             placesNode = root.path("places");
@@ -56,7 +60,6 @@ public class ScheduleEditService {
             String gptOriginalName = node.path("gptOriginalName").asText();
 
             KakaoPlaceDto kakao = kakaoMapClient.searchPlace(name);
-
             if (kakao == null) continue;
 
             String matchedName = kakao.getPlaceName();
@@ -83,5 +86,4 @@ public class ScheduleEditService {
 
         return result;
     }
-
 }

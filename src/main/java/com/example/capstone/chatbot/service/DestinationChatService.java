@@ -64,7 +64,6 @@ public class DestinationChatService {
                     try {
                         String prompt = foodPromptBuilder.build(place);
                         String response = openAiClient.callGpt(prompt);
-                        System.out.println("🧠 GPT 응답 원문:\n" + response);
                         return objectMapper.readValue(response, FoodResDto.class);
                     } catch (Exception e) {
                         throw new RuntimeException("Food GPT 처리 실패: " + place.getPlaceName(), e);
@@ -106,7 +105,6 @@ public class DestinationChatService {
                 FestivalResDto dto = (FestivalResDto) parseService.parseResponse(ChatCategory.FESTIVAL, gptResponse);
                 result.add(dto);
             } catch (Exception e) {
-                System.err.println("❌ GPT 축제 파싱 실패: " + e.getMessage());
             }
 
             if (result.size() >= 3) break;
