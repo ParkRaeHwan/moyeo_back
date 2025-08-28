@@ -1,10 +1,7 @@
 package com.example.capstone.plan.controller;
 
 import com.example.capstone.plan.dto.request.*;
-import com.example.capstone.plan.dto.response.ScheduleEditResDto;
-import com.example.capstone.plan.dto.response.ScheduleSaveResDto;
-import com.example.capstone.plan.dto.response.FullScheduleResDto;
-import com.example.capstone.plan.dto.response.SimpleScheduleResDto;
+import com.example.capstone.plan.dto.response.*;
 import com.example.capstone.plan.service.*;
 import com.example.capstone.util.oauth2.dto.CustomOAuth2User;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,10 +19,11 @@ import java.util.List;
 @Tag(name = "Schedule API", description = "여행 일정 생성, 수정, 저장 관련 API")
 public class ScheduleController {
 
-    private final ScheduleService scheduleService;
     private final ScheduleEditService scheduleEditService;
     private final ScheduleSaveService scheduleSaveService;
     private final ScheduleRecreateService scheduleRecreateService;
+    private final ScheduleCreateService scheduleCreateService;
+    private final PlaceDetailService placeDetailService;
     private final ScheduleDeleteService scheduleDeleteService;
     private final ScheduleQueryService scheduleQueryService;
 
@@ -51,12 +49,6 @@ public class ScheduleController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "GPT 기반 여행일정 생성", description = "MBTI, 여행 성향, 예산 등을 기반으로 여행 일정을 생성합니다.")
-    @PostMapping("/create")
-    public ResponseEntity<FullScheduleResDto> createSchedule(@RequestBody ScheduleCreateReqDto request) {
-        FullScheduleResDto response = scheduleService.generateFullSchedule(request);
-        return ResponseEntity.ok(response);
-    }
 
 
     @Operation(summary = "추천 일정 저장", description = "사용자가 확정한 여행 일정을 데이터베이스에 저장합니다.")
@@ -69,12 +61,12 @@ public class ScheduleController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "기존 일정을 제외한 일정 재생성", description = "create로 받은 일정에서 장소들을 제외하고 새로운 일정을 생성합니다.")
+   /* @Operation(summary = "기존 일정을 제외한 일정 재생성", description = "create로 받은 일정에서 장소들을 제외하고 새로운 일정을 생성합니다.")
     @PostMapping("/recreate")
     public ResponseEntity<FullScheduleResDto> regenerate(@RequestBody ScheduleRecreateReqDto request) {
         FullScheduleResDto response = scheduleRecreateService.recreateSchedule(request);
         return ResponseEntity.ok(response);
-    }
+    }*/
 
 
     @Operation(summary = "일정 수정", description = "수정된 장소 리스트를 기반으로 하루 일정을 리빌딩합니다.")
@@ -92,4 +84,24 @@ public class ScheduleController {
         scheduleDeleteService.deleteSchedule(scheduleId, userDetails);
         return new ResponseEntity<>(HttpStatus.OK);
     }
+    @Operation(summary = "GPT 기반 여행일정 생성", description = "MBTI, 여행 성향, 예산 등을 기반으로 여행 일정을 생성합니다.")
+    @PostMapping("/create")
+    public ResponseEntity<ScheduleCreateResDto> createSchedule(@RequestBody ScheduleCreateReqDto request) {
+        ScheduleCreateResDto response = scheduleCreateService.generateSchedule(request);
+        return ResponseEntity.ok(response);
+    }
+    @Operation(summary = "장소 상세정보 조회", description = "장소 이름과 타입, 예산을 기반으로 한줄 소개, 주소, 좌표를 포함한 상세정보를 반환합니다.")
+    @PostMapping("/detail")
+    public ResponseEntity<PlaceDetailResDto> getPlaceDetail(@RequestBody PlaceDetailReqDto request) {
+        PlaceDetailResDto response = placeDetailService.getPlaceDetail(request);
+        return ResponseEntity.ok(response);
+    }
+    @Operation(summary = "기존 일정을 제외한 일정 재생성", description = "create로 받은 일정에서 장소들을 제외하고 새로운 일정을 생성합니다.")
+    @PostMapping("/recreate")
+    public ResponseEntity<ScheduleCreateResDto> regenerate(@RequestBody ScheduleRecreateReqDto request) {
+        ScheduleCreateResDto response = scheduleRecreateService.recreateSchedule(request);
+        return ResponseEntity.ok(response);
+    }
+
 }
+

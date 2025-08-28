@@ -224,11 +224,25 @@ public class KakaoMapClient {
         String name = doc.path("place_name").asText();
         double lat = doc.path("y").asDouble();
         double lon = doc.path("x").asDouble();
-        String address = doc.has("road_address_name") && !doc.get("road_address_name").isNull()
-                ? doc.get("road_address_name").asText()
-                : doc.get("address_name").asText();
+        String roadAddress = doc.path("road_address_name").asText();
+        String jibunAddress = doc.path("address_name").asText();
+        String address;
+        if (roadAddress != null && !roadAddress.isBlank()) {
+            address = roadAddress;
+        } else if (jibunAddress != null && !jibunAddress.isBlank()) {
+            address = jibunAddress;
+        } else {
+            address = "주소 정보 없음";
+        }
         String phone = doc.path("phone").asText("");
         String category = doc.path("category_group_code").asText("");
         return new KakaoPlaceDto(name, lat, lon, address, phone, category);
     }
+
+    public KakaoPlaceDto resolvePlaceFromHashtag(String hashtag) {
+        KakaoPlaceDto result = searchPlace(hashtag);
+        if (result != null) return result;
+        return new KakaoPlaceDto(hashtag, 0.0, 0.0, "주소 정보 없음", "", "");
+    }
+
 }

@@ -10,7 +10,7 @@ import com.example.capstone.plan.entity.TravelDay;
 import com.example.capstone.plan.entity.TravelPlace;
 import com.example.capstone.plan.repository.DayRepository;
 import com.example.capstone.plan.repository.PlaceRepository;
-import com.example.capstone.util.gpt.GptPlaceDescriptionPromptBuilder;
+import com.example.capstone.plan.dto.response.ScheduleCreateResDto.PlaceResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +26,44 @@ public class ScheduleRefinerService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final DayRepository dayRepository;
     private final PlaceRepository placeRepository;
+
+    public Map<String, List<PlaceResponse>> refine(Map<String, List<GptPlaceDto>> gptMap) {
+        Map<String, List<PlaceResponse>> refinedMap = new LinkedHashMap<>();
+
+        for (Map.Entry<String, List<GptPlaceDto>> entry : gptMap.entrySet()) {
+            String date = entry.getKey();
+            List<GptPlaceDto> gptPlaces = entry.getValue();
+            List<PlaceResponse> refinedPlaces = new ArrayList<>();
+
+            for (GptPlaceDto gpt : gptPlaces) {
+                KakaoPlaceDto kakaoPlace = kakaoMapClient.searchPlaceFromGpt(
+                        gpt.getName(),
+                        gpt.getLocation() != null ? gpt.getLocation().getName() : null,
+                        mapToCategoryCode(gpt.getType())
+                );
+
+                String name = kakaoPlace != null ? kakaoPlace.getPlaceName() : gpt.getName();
+                double lat = kakaoPlace != null ? kakaoPlace.getLatitude() : 0.0;
+                double lng = kakaoPlace != null ? kakaoPlace.getLongitude() : 0.0;
+
+                PlaceResponse place = PlaceResponse.builder()
+                        .type(gpt.getType())
+                        .hashtag(gpt.getName())
+                        .name(name)
+                        .lat(lat)
+                        .lng(lng)
+                        .estimatedCost(0)
+                        .build();
+
+                refinedPlaces.add(place);
+            }
+
+            refinedMap.put(date, refinedPlaces);
+        }
+
+        return refinedMap;
+    }
+
 
 
     /**
@@ -138,7 +176,7 @@ public class ScheduleRefinerService {
     private String normalizeType(String rawType) {
         if (rawType == null) return "기타";
         return switch (rawType.trim()) {
-            case "아침", "점심", "저녁", "브런치", "meal" -> "식사";
+            case "아침", "점심", "저녁", "브런치", "meal" -> "식당";
             case "숙소", "호텔", "accommodation" -> "숙소";
             case "관광지", "활동", "activity" -> "관광지";
             default -> rawType;

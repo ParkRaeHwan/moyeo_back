@@ -126,3 +126,10 @@ openweather:
 
 tourapi:
   key: ${TOURAPI_KEY}
+
+tmap:
+  app-key: ${TMAP_API_KEY}
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: gemini-1.5-pro
