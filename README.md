@@ -14,9 +14,11 @@
 <br/>
 
 # 2. Team Members (팀원 및 팀 소개)
-| 이름 | 역할 | 사진 |
-|박래환|백엔드|----|
-|  |  |  |
+| 박래환 | 정세현 | 백민기 | 최광원 | 김민수 | 
+|:------:|:------:|:------:|:------:|
+| <img src="https://github.com/user-attachments/assets/c1c2b1e3-656d-4712-98ab-a15e91efa2da" alt="이동규" width="150"> | <img src="https://github.com/user-attachments/assets/78ec4937-81bb-4637-975d-631eb3c4601e" alt="신유승" width="150"> | <img src="https://github.com/user-attachments/assets/78ce1062-80a0-4edb-bf6b-5efac9dd992e" alt="김나연" width="150"> | <img src="https://github.com/user-attachments/assets/beea8c64-19de-4d91-955f-ed24b813a638" alt="이승준" width="150"> |
+| PL | FE | FE | FE |
+| [GitHub](https://github.com/LDK1009) | [GitHub](https://github.com/SinYusi) | [GitHub](https://github.com/nay3on) | [GitHub](https://github.com/conconcc) |
 
 <br/>
 <br/>
