@@ -113,10 +113,14 @@ public class ChatService {
                             .findFirst()
                             .orElse(UserEntity.deletedUserPlaceholder()); // 또는 null-safe 처리
 
+                    ChatMessage lastMessage = chatMessageRepository.findFirstByUserAndChatRoom(otherUser, chatRoom);
+
                     long unreadCount = unreadCountMap.getOrDefault(chatRoom.getId(), 0L);
 
                     return MyChatRoomListResDto.builder()
                             .roomId(chatRoom.getId())
+                            .lastMessage(lastMessage.getContent())
+                            .lastMessageTime(lastMessage.getCreatedTime())
                             .otherUserNickname(otherUser.getNickname())
                             .otherUserImageUrl(otherUser.getProfileImageUrl())
                             .unReadCount(unreadCount)
