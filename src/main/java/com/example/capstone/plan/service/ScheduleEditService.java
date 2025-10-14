@@ -1,8 +1,7 @@
 package com.example.capstone.plan.service;
 
-import com.example.capstone.plan.dto.common.FromPreviousDto;
 import com.example.capstone.plan.dto.common.KakaoPlaceDto;
-import com.example.capstone.plan.dto.response.FullScheduleResDto.PlaceResponse;
+import com.example.capstone.plan.dto.response.ScheduleCreateResDto.PlaceResponse;
 import com.example.capstone.plan.dto.response.ScheduleEditResDto;
 import com.example.capstone.util.gpt.GptEditPromptBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,16 +17,17 @@ import java.util.List;
 public class ScheduleEditService {
 
     private final GptEditPromptBuilder promptBuilder;
-    private final OpenAiClient openAiClient;
-    private final KakaoMapClient kakaoMapClient;
+    private final GeminiClient geminiClient;     // LLM 호출
+    private final KakaoMapClient kakaoMapClient; // 좌표/주소
+    private final TmapRouteService tmapRouteService; //  추가: TMAP 이동시간
     private final ObjectMapper objectMapper;
 
     public ScheduleEditResDto editSchedule(List<String> names) {
         try {
             String prompt = promptBuilder.build(names);
-            String gptResponse = openAiClient.callGpt(prompt);
-            List<PlaceResponse> places = parseGptResponse(gptResponse);
+            String gptResponse = geminiClient.callGemini(prompt);
 
+            List<PlaceResponse> places = parseGptResponse(gptResponse);
             int total = places.stream().mapToInt(PlaceResponse::getEstimatedCost).sum();
 
             return ScheduleEditResDto.builder()
@@ -55,35 +55,56 @@ public class ScheduleEditService {
         }
 
         List<PlaceResponse> result = new ArrayList<>();
+        PlaceResponse prev = null; //  이전 장소 추적 (TMAP 계산용)
+
         for (JsonNode node : placesNode) {
-            String name = node.path("name").asText();
-            String gptOriginalName = node.path("gptOriginalName").asText();
+            String name = node.path("name").asText(null);
+            String hashtag = node.path("hashtag").asText(null);
+            if (name == null || name.isBlank()) continue;
 
             KakaoPlaceDto kakao = kakaoMapClient.searchPlace(name);
             if (kakao == null) continue;
 
             String matchedName = kakao.getPlaceName();
-            if (!matchedName.contains(name) && !name.contains(matchedName)) continue;
+            if (matchedName == null || (!matchedName.contains(name) && !name.contains(matchedName))) continue;
+
+            double currLat = kakao.getLatitude();
+            double currLng = kakao.getLongitude();
+
+            Integer walkTime = null;
+            Integer driveTime = null;
+            Integer transitTime = null;
+
+            // 첫 장소가 아니고, 좌표가 유효하면 이동시간 계산
+            if (prev != null && valid(prev.getLat(), prev.getLng()) && valid(currLat, currLng)) {
+                int walk    = tmapRouteService.getTime("walk",    prev.getLat(), prev.getLng(), currLat, currLng);
+                int drive   = tmapRouteService.getTime("drive",   prev.getLat(), prev.getLng(), currLat, currLng);
+                int transit = tmapRouteService.getTime("transit", prev.getLat(), prev.getLng(), currLat, currLng);
+                // 실패 시 -1 반환하는 관례 유지 → 그대로 저장
+                walkTime = walk;
+                driveTime = drive;
+                transitTime = transit;
+            }
 
             PlaceResponse place = PlaceResponse.builder()
                     .name(name)
-                    .gptOriginalName(gptOriginalName)
-                    .type(node.path("type").asText())
-                    .estimatedCost(node.path("estimatedCost").asInt())
-                    .description(node.path("description").asText())
-                    .fromPrevious(node.has("fromPrevious") ? new FromPreviousDto(
-                            node.get("fromPrevious").path("walk").asInt(0),
-                            node.get("fromPrevious").path("publicTransport").asInt(0),
-                            node.get("fromPrevious").path("car").asInt(0)
-                    ) : null)
-                    .address(kakao.getAddress())
-                    .lat(kakao.getLatitude())
-                    .lng(kakao.getLongitude())
+                    .hashtag(hashtag)
+                    .type(node.path("type").asText(null))
+                    .estimatedCost(node.path("estimatedCost").asInt(0))
+                    .walkTime(walkTime)         // ← FromPrevious 대신 직접 세팅
+                    .driveTime(driveTime)
+                    .transitTime(transitTime)
+                    .lat(currLat)
+                    .lng(currLng)
                     .build();
 
             result.add(place);
+            prev = place; // 다음 항목 계산을 위해 업데이트
         }
-
         return result;
+    }
+
+    private boolean valid(double lat, double lng) {
+        return !(lat == 0.0 || lng == 0.0);
     }
 }

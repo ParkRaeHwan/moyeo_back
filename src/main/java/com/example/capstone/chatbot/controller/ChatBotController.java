@@ -4,7 +4,6 @@ import com.example.capstone.chatbot.dto.request.*;
 import com.example.capstone.chatbot.entity.ChatCategory;
 import com.example.capstone.chatbot.service.*;
 import com.example.capstone.plan.entity.City;
-import com.example.capstone.plan.service.OpenAiClient;
 import com.example.capstone.util.chatbot.*;
 import com.example.capstone.util.chatbot.recreate.FestivalRecreatePromptBuilder;
 import com.example.capstone.util.chatbot.recreate.SpotRecreatePromptBuilder;

@@ -9,13 +9,13 @@ import lombok.*;
 public class PlaceDetailDto {
     private String name;
     private String type;
-    private String address;
     private Double lat;
     private Double lng;
-    private String description;
     private Integer estimatedCost;
-    private FromPreviousDto fromPrevious;
-    private String gptOriginalName;
+    private Integer walkTime;
+    private Integer driveTime;
+    private Integer transitTime;
+    private String hashtag;
 
 
 }

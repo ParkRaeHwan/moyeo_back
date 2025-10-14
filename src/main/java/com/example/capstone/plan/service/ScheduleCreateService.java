@@ -24,7 +24,6 @@ public class ScheduleCreateService {
     private final GptCreatePromptBuilder gptCreatePromptBuilder;
     private final ScheduleRefinerService scheduleRefinerService;
     private final KakaoMapClient kakaoMapClient;
-    private final OpenAiClient openAiClient;
     private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
     private final TmapRouteService tmapRouteService;
@@ -35,8 +34,7 @@ public class ScheduleCreateService {
 
             // 1. GPT 프롬프트로 장소 구조 생성
             String prompt = gptCreatePromptBuilder.build(request);
-            String gptResponse = openAiClient.callGpt(prompt);
-            JsonNode root = objectMapper.readTree(gptResponse).get("itinerary");
+            JsonNode root = geminiClient.callGeminiAsJsonNode(prompt).get("itinerary");
 
 
             // 2. GPT 응답 → 날짜별 GptPlaceDto 맵으로 변환
@@ -65,8 +63,7 @@ public class ScheduleCreateService {
 
             // 5. 예산 계산: 프롬프트 생성 → GPT 호출 → JSON 파싱 → estimatedCost 삽입
             String costPrompt = gptCostPromptBuilder.build(convertToPlaceDetailMap(refinedMap));
-            String costResponse = openAiClient.callGpt(costPrompt);
-            JsonNode costJson = objectMapper.readTree(costResponse);
+            JsonNode costJson = geminiClient.callGeminiAsJsonNode(costPrompt);
 
             Iterator<String> fieldNames = costJson.fieldNames();
             while (fieldNames.hasNext()) {

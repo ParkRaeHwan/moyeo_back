@@ -17,7 +17,7 @@ public class ChatBotParseService {
 
     public Object parseResponse(ChatCategory category, String gptResponse) throws Exception {
         return switch (category) {
-            case SPOT -> parse(gptResponse, new TypeReference<SpotResDto>() {});
+            case SPOT -> parse(gptResponse, new TypeReference<List<SpotResDto>>() {});
             case FOOD -> parse(gptResponse, new TypeReference<List<FoodResDto>>() {});
             case HOTEL -> parse(gptResponse, new TypeReference<List<HotelResDto>>() {});
             case FESTIVAL -> parse(gptResponse, new TypeReference<FestivalResDto>() {});

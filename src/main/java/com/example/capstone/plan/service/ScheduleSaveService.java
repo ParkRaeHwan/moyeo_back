@@ -2,7 +2,6 @@ package com.example.capstone.plan.service;
 
 import com.example.capstone.plan.dto.request.ScheduleSaveReqDto;
 import com.example.capstone.plan.dto.response.ScheduleSaveResDto;
-import com.example.capstone.plan.entity.FromPrevious;
 import com.example.capstone.plan.entity.TravelDay;
 import com.example.capstone.plan.entity.TravelPlace;
 import com.example.capstone.plan.entity.TravelSchedule;
@@ -65,16 +64,14 @@ public class ScheduleSaveService {
                         .travelDay(travelDay)
                         .name(placeRequest.getName())
                         .type(placeRequest.getType())
-                        .address(placeRequest.getAddress())
                         .lat(placeRequest.getLat())
                         .lng(placeRequest.getLng())
-                        .description(placeRequest.getDescription())
                         .estimatedCost(placeRequest.getEstimatedCost())
-                        .gptOriginalName(placeRequest.getGptOriginalName())
+                        .hashtag(placeRequest.getHashtag())
                         .placeOrder(j)
-                        .fromPrevious(Optional.ofNullable(placeRequest.getFromPrevious())
-                                .map(dto -> new FromPrevious(dto.getWalk(), dto.getPublicTransport(), dto.getCar()))
-                                .orElse(null))
+                        .walkTime(placeRequest.getWalkTime())
+                        .driveTime(placeRequest.getDriveTime())
+                        .transitTime(placeRequest.getTransitTime())
                         .build();
                 placeRepository.save(travelPlace);
             }

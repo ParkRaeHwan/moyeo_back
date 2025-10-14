@@ -9,15 +9,14 @@ import com.example.capstone.chatbot.entity.ChatCategory;
 import com.example.capstone.plan.dto.common.KakaoPlaceDto;
 import com.example.capstone.plan.entity.City;
 import com.example.capstone.plan.service.KakaoMapClient;
-import com.example.capstone.plan.service.OpenAiClient;
+import com.example.capstone.plan.service.GeminiClient; // ★ 변경
 import com.example.capstone.util.chatbot.recreate.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -25,7 +24,7 @@ import java.util.stream.StreamSupport;
 @RequiredArgsConstructor
 public class DestinationChatRecreateService {
 
-    private final OpenAiClient openAiClient;
+    private final GeminiClient geminiClient;     // ★ 변경: OpenAiClient → GeminiClient
     private final ChatBotParseService parseService;
     private final KakaoMapClient kakaoMapClient;
     private final TourApiClient tourApiClient;
@@ -37,8 +36,8 @@ public class DestinationChatRecreateService {
 
     public List<FoodResDto> recreateFood(ChatBotRecreateReqDto req) {
         try {
-            List<KakaoPlaceDto> topPlaces = kakaoMapClient
-                    .searchTopPlacesByCityAndCategory(req.getCity(), "FD6", 10);
+            List<KakaoPlaceDto> topPlaces =
+                    kakaoMapClient.searchTopPlacesByCityAndCategory(req.getCity(), "FD6", 10);
 
             return topPlaces.stream()
                     .filter(place -> !req.getExcludedNames().contains(place.getPlaceName()))
@@ -46,8 +45,11 @@ public class DestinationChatRecreateService {
                     .map(place -> {
                         try {
                             String prompt = foodRecreatePromptBuilder.build(place);
-                            String response = openAiClient.callGpt(prompt);
-                            return ((List<FoodResDto>) parseService.parseResponse(ChatCategory.FOOD, "[" + response + "]")).get(0);
+                            String response = geminiClient.callGemini(prompt); // ★ 변경
+                            // parseService가 배열을 기대하므로 단일 객체를 배열로 감싸서 전달
+                            return ((List<FoodResDto>) parseService.parseResponse(
+                                    ChatCategory.FOOD, "[" + response + "]"
+                            )).get(0);
                         } catch (Exception e) {
                             throw new RuntimeException("음식점 GPT 파싱 실패: " + place.getPlaceName(), e);
                         }
@@ -55,14 +57,14 @@ public class DestinationChatRecreateService {
                     .toList();
         } catch (Exception e) {
             e.printStackTrace();
-            return List.of(); // 안전하게 빈 리스트 반환
+            return List.of();
         }
     }
 
     public List<HotelResDto> recreateHotel(ChatBotRecreateReqDto req) {
         try {
-            List<KakaoPlaceDto> topPlaces = kakaoMapClient
-                    .searchTopPlacesByCityAndCategory(req.getCity(), "AD5", 10);
+            List<KakaoPlaceDto> topPlaces =
+                    kakaoMapClient.searchTopPlacesByCityAndCategory(req.getCity(), "AD5", 10);
 
             return topPlaces.stream()
                     .filter(place -> !req.getExcludedNames().contains(place.getPlaceName()))
@@ -70,8 +72,10 @@ public class DestinationChatRecreateService {
                     .map(place -> {
                         try {
                             String prompt = hotelRecreatePromptBuilder.build(place);
-                            String response = openAiClient.callGpt(prompt);
-                            return ((List<HotelResDto>) parseService.parseResponse(ChatCategory.HOTEL, "[" + response + "]")).get(0);
+                            String response = geminiClient.callGemini(prompt); // ★ 변경
+                            return ((List<HotelResDto>) parseService.parseResponse(
+                                    ChatCategory.HOTEL, "[" + response + "]"
+                            )).get(0);
                         } catch (Exception e) {
                             throw new RuntimeException("숙소 GPT 파싱 실패: " + place.getPlaceName(), e);
                         }
@@ -94,13 +98,13 @@ public class DestinationChatRecreateService {
             for (JsonNode item : rawFestivals) {
                 try {
                     String prompt = festivalRecreatePromptBuilder.build(item);
-                    String gptResponse = openAiClient.callGpt(prompt);
-                    FestivalResDto dto = (FestivalResDto) parseService.parseResponse(ChatCategory.FESTIVAL, gptResponse);
+                    String gptResponse = geminiClient.callGemini(prompt); // ★ 변경
+                    FestivalResDto dto = (FestivalResDto) parseService.parseResponse(
+                            ChatCategory.FESTIVAL, gptResponse);
                     result.add(dto);
                 } catch (Exception e) {
                     System.err.println("[Festival GPT 파싱 실패] 일부 항목 건너뜀: " + e.getMessage());
                 }
-
                 if (result.size() >= 3) break;
             }
 
@@ -121,11 +125,12 @@ public class DestinationChatRecreateService {
             for (int i = 0; i < 3; i++) {
                 try {
                     String prompt = spotRecreatePromptBuilder.build(i, city, null, null, excludedNames);
-                    String response = openAiClient.callGpt(prompt);
+                    String response = geminiClient.callGemini(prompt); // ★ 변경
                     SpotResDto dto = (SpotResDto) parseService.parseResponse(ChatCategory.SPOT, response);
 
-                    if (excludedNames.contains(dto.getName())) {
-                        i--; continue;
+                    if (dto == null || dto.getName() == null || excludedNames.contains(dto.getName())) {
+                        i--; // 실패/중복 시 재시도
+                        continue;
                     }
 
                     result.add(dto);

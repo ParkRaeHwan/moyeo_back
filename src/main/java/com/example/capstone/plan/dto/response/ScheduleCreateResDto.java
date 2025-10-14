@@ -1,5 +1,6 @@
 package com.example.capstone.plan.dto.response;
 
+import com.example.capstone.plan.dto.common.PlaceDetailDto;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -41,5 +42,20 @@ public class ScheduleCreateResDto {
         private Integer driveTime;
         private Integer transitTime;
 
+
+        public static PlaceResponse from(PlaceDetailDto src) {
+            if (src == null) return null;
+            return PlaceResponse.builder()
+                    .type(src.getType())
+                    .name(src.getName())
+                    .hashtag(src.getHashtag())
+                    .estimatedCost(src.getEstimatedCost() != null ? src.getEstimatedCost() : 0)
+                    .lat(src.getLat() != null ? src.getLat() : 0.0)
+                    .lng(src.getLng() != null ? src.getLng() : 0.0)
+                    .walkTime(src.getWalkTime())
+                    .driveTime(src.getDriveTime())
+                    .transitTime(src.getTransitTime())
+                    .build();
+        }
     }
 }

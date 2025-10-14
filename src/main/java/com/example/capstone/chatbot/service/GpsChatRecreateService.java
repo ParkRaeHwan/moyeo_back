@@ -7,7 +7,7 @@ import com.example.capstone.chatbot.dto.response.HotelResDto;
 import com.example.capstone.chatbot.entity.ChatCategory;
 import com.example.capstone.plan.dto.common.KakaoPlaceDto;
 import com.example.capstone.plan.service.KakaoMapClient;
-import com.example.capstone.plan.service.OpenAiClient;
+import com.example.capstone.plan.service.GeminiClient; // ★ 변경: OpenAiClient → GeminiClient
 import com.example.capstone.util.chatbot.recreate.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import java.util.stream.StreamSupport;
 public class GpsChatRecreateService {
 
     private final KakaoMapClient kakaoMapClient;
-    private final OpenAiClient openAiClient;
+    private final GeminiClient geminiClient;   // ★ 변경: 필드 교체
     private final ChatBotParseService parseService;
     private final TourApiClient tourApiClient;
 
@@ -42,8 +42,11 @@ public class GpsChatRecreateService {
                     .map(place -> {
                         try {
                             String prompt = foodRecreatePromptBuilder.build(place);
-                            String response = openAiClient.callGpt(prompt);
-                            return ((List<FoodResDto>) parseService.parseResponse(ChatCategory.FOOD, "[" + response + "]")).get(0);
+                            String response = geminiClient.callGemini(prompt); // ★ 변경
+                            // 기존 파서가 배열을 기대한다면, 단일 객체를 배열로 감싸서 전달
+                            return ((List<FoodResDto>) parseService.parseResponse(
+                                    ChatCategory.FOOD, "[" + response + "]"
+                            )).get(0);
                         } catch (Exception e) {
                             throw new RuntimeException("GPS 음식점 GPT 파싱 실패: " + place.getPlaceName(), e);
                         }
@@ -65,8 +68,10 @@ public class GpsChatRecreateService {
                     .map(place -> {
                         try {
                             String prompt = hotelRecreatePromptBuilder.build(place);
-                            String response = openAiClient.callGpt(prompt);
-                            return ((List<HotelResDto>) parseService.parseResponse(ChatCategory.HOTEL, "[" + response + "]")).get(0);
+                            String response = geminiClient.callGemini(prompt); // ★ 변경
+                            return ((List<HotelResDto>) parseService.parseResponse(
+                                    ChatCategory.HOTEL, "[" + response + "]"
+                            )).get(0);
                         } catch (Exception e) {
                             throw new RuntimeException("GPS 숙소 GPT 파싱 실패: " + place.getPlaceName(), e);
                         }
@@ -87,12 +92,12 @@ public class GpsChatRecreateService {
             for (JsonNode item : rawFestivals) {
                 try {
                     String prompt = festivalRecreatePromptBuilder.build(item);
-                    String gptResponse = openAiClient.callGpt(prompt);
+                    String gptResponse = geminiClient.callGemini(prompt); // ★ 변경
                     FestivalResDto dto = (FestivalResDto) parseService.parseResponse(ChatCategory.FESTIVAL, gptResponse);
                     result.add(dto);
                 } catch (Exception e) {
+                    // 파싱 실패는 스킵
                 }
-
                 if (result.size() >= 3) break;
             }
 
@@ -117,17 +122,19 @@ public class GpsChatRecreateService {
 
             int i = 0;
             while (results.size() < 3) {
+                // SpotRecreatePromptBuilder 시그니처가 (int, City, double, double, List<String>) 라면
+                // City는 GPS 기반이라 null로 유지 (빌더 내부에서 좌표 기준 검색)
                 String prompt = spotRecreatePromptBuilder.build(i, null, lat, lng, updatedExcluded);
-                String response = openAiClient.callGpt(prompt);
+                String response = geminiClient.callGemini(prompt); // ★ 변경
 
                 SpotResDto dto;
                 try {
                     dto = (SpotResDto) parseService.parseResponse(ChatCategory.SPOT, response);
                 } catch (Exception e) {
-                    continue; // 파싱 실패 → 다음 반복으로 넘어감
+                    continue; // 파싱 실패 → 다음 반복
                 }
 
-                if (dto == null || updatedExcluded.contains(dto.getName())) {
+                if (dto == null || dto.getName() == null || updatedExcluded.contains(dto.getName())) {
                     continue;
                 }
 

@@ -1,8 +1,7 @@
 package com.example.capstone.plan.service;
 
-import com.example.capstone.plan.dto.common.FromPreviousDto;
 import com.example.capstone.plan.dto.common.PlaceDetailDto;
-import com.example.capstone.plan.dto.response.FullScheduleResDto;
+import com.example.capstone.plan.dto.response.ScheduleCreateResDto;
 import com.example.capstone.plan.dto.response.SimpleScheduleResDto;
 import com.example.capstone.plan.entity.TravelPlace;
 import com.example.capstone.plan.entity.TravelSchedule;
@@ -42,7 +41,7 @@ public class ScheduleQueryService {
                 )).toList();
     }
 
-    public FullScheduleResDto getFullSchedule(Long scheduleId, CustomOAuth2User userDetails) {
+    public ScheduleCreateResDto getFullSchedule(Long scheduleId, CustomOAuth2User userDetails) {
         String providerId = userDetails.getProviderId();
         UserEntity user = userRepository.findByProviderId(providerId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -63,16 +62,16 @@ public class ScheduleQueryService {
                         .type(place.getType())
                         .lat(place.getLat())
                         .lng(place.getLng())
-                        .address(place.getAddress())
                         .estimatedCost(place.getEstimatedCost())
-                        .description(place.getDescription())
-                        .gptOriginalName(place.getGptOriginalName())
-                        .fromPrevious(FromPreviousDto.fromEntity(place.getFromPrevious()))
+                        .hashtag(place.getHashtag())
+                        .walkTime(place.getWalkTime())
+                        .driveTime(place.getDriveTime())
+                        .transitTime(place.getTransitTime())
                         .build())
                 .toList();
     }
 
-    public FullScheduleResDto convertToBlockStructure(List<PlaceDetailDto> places, TravelSchedule travelSchedule) {
+    public ScheduleCreateResDto convertToBlockStructure(List<PlaceDetailDto> places, TravelSchedule travelSchedule) {
         int days = (int) ChronoUnit.DAYS.between(travelSchedule.getStartDate(), travelSchedule.getEndDate()) + 1;
         Map<Integer, List<PlaceDetailDto>> groupedByDayIndex = new LinkedHashMap<>();
         for (int i = 0; i < days; i++) groupedByDayIndex.put(i, new ArrayList<>());
@@ -81,7 +80,7 @@ public class ScheduleQueryService {
             if (dayIndex < days) groupedByDayIndex.get(dayIndex).add(places.get(i));
         }
 
-        List<FullScheduleResDto.DailyScheduleBlock> blocks = new ArrayList<>();
+        List<ScheduleCreateResDto.DailyScheduleBlock> blocks = new ArrayList<>();
         for (int i = 0; i < days; i++) {
             LocalDate date = travelSchedule.getStartDate().plusDays(i);
             String day = (i + 1) + "일차";
@@ -93,14 +92,14 @@ public class ScheduleQueryService {
                     .mapToInt(Integer::intValue)
                     .sum();
 
-            List<FullScheduleResDto.PlaceResponse> placeResponses = dayPlaces.stream()
-                    .map(FullScheduleResDto.PlaceResponse::from)
+            List<ScheduleCreateResDto.PlaceResponse> placeResponses = dayPlaces.stream()
+                    .map(ScheduleCreateResDto.PlaceResponse::from)
                     .toList();
 
-            blocks.add(new FullScheduleResDto.DailyScheduleBlock(day, date.toString(), total, placeResponses));
+            blocks.add(new ScheduleCreateResDto.DailyScheduleBlock(day, date.toString(), total, placeResponses));
         }
 
-        return new FullScheduleResDto(
+        return new ScheduleCreateResDto(
                 travelSchedule.getTitle(),
                 travelSchedule.getStartDate(),
                 travelSchedule.getEndDate(),

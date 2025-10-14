@@ -1,6 +1,6 @@
 package com.example.capstone.plan.dto.response;
 
-import com.example.capstone.plan.dto.response.FullScheduleResDto.PlaceResponse;
+import com.example.capstone.plan.dto.response.ScheduleCreateResDto.PlaceResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

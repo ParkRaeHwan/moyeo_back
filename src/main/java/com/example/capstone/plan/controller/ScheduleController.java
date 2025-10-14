@@ -32,11 +32,11 @@ public class ScheduleController {
 
     @Operation(summary = "스케줄 상세조회", description = "저장된 스케줄 ID로 전체 일정을 조회합니다.")
     @GetMapping("/full/{scheduleId}")
-    public ResponseEntity<FullScheduleResDto> getFullDetail(
+    public ResponseEntity<ScheduleCreateResDto> getFullDetail(
             @AuthenticationPrincipal CustomOAuth2User userDetails,
             @PathVariable Long scheduleId) {
 
-        FullScheduleResDto response = scheduleQueryService.getFullSchedule(scheduleId, userDetails);
+        ScheduleCreateResDto response = scheduleQueryService.getFullSchedule(scheduleId, userDetails);
         return ResponseEntity.ok(response);
     }
 
