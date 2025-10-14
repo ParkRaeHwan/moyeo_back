@@ -1,5 +1,7 @@
 package com.example.capstone.util.jwt;
 
+import com.example.capstone.user.exception.InvalidTokenException;
+import com.example.capstone.user.exception.TokenExpiredException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -15,8 +17,10 @@ public class JwtUtil {
 
     @Value("${jwt.secret}")
     private String jwtSecret;
-    @Value("${jwt.expirationMs}")
-    private long jwtExpirationMs;
+    @Value("${jwt.access.expirationMs}")
+    private long jwtAccessExpirationMs;
+    @Value("${jwt.refresh.expiationMs}")
+    private long jwtRefreshExpirationMs;
 
     @Value("${jwt.temp.expirationMs}")
     private long jwtTempExpirationMs;
@@ -25,14 +29,15 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
     }
 
-    public String generateToken(String providerId, String email, String nickname) {
+    public String generateToken(String type, String providerId, String email, String nickname) {
+        long expirationMs = type.equals("ACCESS") ? jwtAccessExpirationMs : jwtRefreshExpirationMs;
         return Jwts.builder()
                 .setSubject(providerId)
                 .claim("email", email)
                 .claim("nickname", nickname)
-                .claim("type", "ACCESS")
+                .claim("type", type)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .setExpiration(new Date((new Date()).getTime() + expirationMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -93,14 +98,13 @@ public class JwtUtil {
                     .parseClaimsJws(authToken);
             return true;
         } catch (SecurityException | MalformedJwtException e) {
-            System.err.println("Invalid or missing token");
+            throw new InvalidTokenException("Invalid or missing token");
         } catch (ExpiredJwtException e) {
-            System.err.println("JWT token is expired");
+            throw new TokenExpiredException("JWT token is expired");
         } catch (UnsupportedJwtException e) {
-            System.err.println("JWT token is unsupported");
+            throw new InvalidTokenException("JWT token is unsupported");
         } catch (IllegalArgumentException e) {
-            System.err.println("JWT claims string is empty");
+            throw new InvalidTokenException("JWT claims string is empty");
         }
-        return false;
     }
 }
