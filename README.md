@@ -17,6 +17,7 @@
 | 박래환 | 정세현 | 백민기 | 최광원 | 김민수 |
 |:------:|:------:|:------:|:------:|:------:|
 |BE|FE|BE|PM|FE|
+|<img src="https://github.com/gone0910/moyeo_back/blob/main/readme/image/%EB%AF%B8%EC%96%B4%EC%BA%A3.jpg" alt="박래환" width="100"> |<img src="https://github.com/gone0910/moyeo_back/blob/main/readme/image/KakaoTalk_20251014_201803617.jpg" alt="정세현" width="100">||||
 |[GitHub](https://github.com/ParkRaeHwan)|[GitHub](https://github.com/nyago17)|[GitHub](https://github.com/ignim001)|[GitHub](https://github.com/gone0910)|[GitHub](https://github.com/damchun)|
 
 <br/>
@@ -50,9 +51,9 @@
 # 4. Tasks & Responsibilities (작업 및 역할 분담)
 | 이름 | 사진 | 업무 |
 |-----|-----:|-----|
-| 박래환 | | BE |
+| 박래환 | <img src="https://github.com/gone0910/moyeo_back/blob/main/readme/image/%EB%AF%B8%EC%96%B4%EC%BA%A3.jpg" alt="박래환" width="100"> | BE |
 | 최광원 | | PM |
-| 정세현 | | FE |
+| 정세현 | <img src="https://github.com/gone0910/moyeo_back/blob/main/readme/image/KakaoTalk_20251014_201803617.jpg" alt="정세현" width="100"> | FE |
 | 백민기 | | BE |
 | 김민수 | | FE |
 
