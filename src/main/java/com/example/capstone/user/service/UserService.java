@@ -1,5 +1,7 @@
 package com.example.capstone.user.service;
 
+import com.example.capstone.user.dto.SignupResDto;
+import com.example.capstone.util.jwt.JwtUtil;
 import com.example.capstone.util.oauth2.dto.CustomOAuth2User;
 import com.example.capstone.util.s3.ImageService;
 import com.example.capstone.user.dto.UserProfileReqDto;
@@ -11,9 +13,12 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -22,14 +27,18 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ImageService imageService;
+    private final JwtUtil jwtUtil;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Value("${default.image-url}")
     private String DEFAULT_PROFILE_IMAGE_URL;
+    @Value("${jwt.refresh.expiationMs}")
+    private long refreshExpiationMs;
 
     private static final String USER_IMAGE_DIR = "user-image";
 
     @Transactional
-    public UserEntity signup(CustomOAuth2User userDetails, UserProfileReqDto dto, MultipartFile profileImage) {
+    public SignupResDto signup(CustomOAuth2User userDetails, UserProfileReqDto dto, MultipartFile profileImage) {
         // 닉네임 중복 처리
         if (userRepository.existsByNickname(dto.getNickname())) {
             throw new DuplicateNicknameException("Nickname already exists");
@@ -55,7 +64,18 @@ public class UserService {
                 .build();
 
         userRepository.save(user);
-        return user;
+
+        // 정식 토큰 발급
+        String accessToken = jwtUtil.generateToken("ACCESS", user.getProviderId(), user.getEmail(), user.getNickname());
+        String refreshToken = jwtUtil.generateToken("REFRESH", user.getProviderId(), user.getEmail(), user.getNickname());
+
+        // Todo: Refresh 토큰 Redis 저장
+        redisTemplate.opsForValue().set("REFRESH:" + user.getNickname(), refreshToken, refreshExpiationMs, TimeUnit.MILLISECONDS);
+
+        return SignupResDto.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 
     @Transactional(readOnly = true)

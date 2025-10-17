@@ -35,8 +35,8 @@ public class HotelRecreatePromptBuilder {
   "priceRange": "1박 기준 가격대 (예: 60000원 ~ 90000원)",
   "address": "주소 (입력된 address 그대로 또는 보완 가능)",
   "phone": "전화번호",
-  "checkIn": "체크인 시간 (예: 15:00)",
-  "checkOut": "체크아웃 시간 (예: 11:00)"
+  "checkIn": "체크인 시간 (반드시 HH:mm 형식의 시간만, 예: 15:00)",
+  "checkOut": "체크아웃 시간 (반드시 HH:mm 형식의 시간만, 예: 11:00)"
 }
 """,
                 place.getPlaceName(),

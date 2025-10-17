@@ -5,106 +5,152 @@ import com.example.capstone.plan.entity.City;
 import com.example.capstone.user.entity.MBTI;
 import com.example.capstone.plan.entity.PeopleGroup;
 import com.example.capstone.matching.entity.TravelStyle;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class GptRecreatePromptBuilder {
 
-    public String build(ScheduleCreateReqDto request, List<String> excludePlaceNames) {
+    public String build(ScheduleCreateReqDto request, List<String> excludedNames) {
         StringBuilder sb = new StringBuilder();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
-        String formattedStart = request.getStartDate().format(formatter);
-        String formattedEnd = request.getEndDate().format(formatter);
-        String destinationText = (request.getDestination() == City.NONE)
-                ? "국내"
-                : request.getDestination().getDisplayName();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
+        String start = request.getStartDate().format(fmt);
+        String end   = request.getEndDate().format(fmt);
 
-        sb.append("⚠️ 반드시 읽고 지켜야 할 조건이야. 위반 시 전체 응답은 무효야.\n");
-        sb.append(String.format("%s부터 %s까지 %s 여행 일정을 다시 생성해줘.\n", formattedStart, formattedEnd, destinationText));
+        boolean isDomestic = request.getDestination() == City.NONE;
+        String destinationText = isDomestic ? "국내" : request.getDestination().getDisplayName();
 
-        if (excludePlaceNames != null && !excludePlaceNames.isEmpty()) {
-            sb.append("\n[다음 장소는 이미 포함되었으므로 절대 다시 추천하지 마]\n");
-            excludePlaceNames.forEach(name -> sb.append("- ").append(name).append("\n"));
-            sb.append("- 위 장소 중 하나라도 포함되면 전체 응답은 무효야.\n");
+        sb.append(String.format("""
+다음 요구사항에 따라 **기존 일정과 겹치지 않도록** 여행 일정을 다시 생성하라.
+
+[여행 정보]
+- 기간: %s ~ %s
+- 목적지: %s
+""", start, end, destinationText));
+
+        if (isDomestic) {
+            sb.append("""
+- 목적지 '국내'인 경우: 계절/MBTI/여행성향/예산/인원을 고려하여 **대한민국의 실제 '시(市) 단위' 도시 1곳만** 스스로 선택하고, **전 일정 전체**를 그 **단일 도시 경계 내부**에서만 구성한다.
+""");
         }
 
+        if (request.getMbti() != MBTI.NONE)              sb.append("- MBTI: ").append(request.getMbti()).append("\n");
+        if (request.getTravelStyle() != TravelStyle.NONE) sb.append("- 여행 성향: ").append(request.getTravelStyle()).append("\n");
+        if (request.getPeopleGroup() != PeopleGroup.NONE) sb.append("- 여행 인원: ").append(request.getPeopleGroup()).append("명\n");
+        if (request.getBudget() != null)                  sb.append("- 예산: ").append(request.getBudget()).append("원\n");
+
+        sb.append("\n[입력 제외 목록(JSON)]\n{\n  \"excludedNames\": [\n");
+        if (excludedNames != null && !excludedNames.isEmpty()) {
+            for (int i = 0; i < excludedNames.size(); i++) {
+                String name = excludedNames.get(i);
+                if (name == null) continue;
+                name = name.replace("\"", "\\\"");
+                sb.append("    \"").append(name).append("\"");
+                if (i < excludedNames.size() - 1) sb.append(",");
+                sb.append("\n");
+            }
+        }
+        sb.append("  ]\n}\n");
+
         sb.append("""
-[일정 구조 조건]
-- 하루 일정은 정확히 다음 7개 항목으로 구성돼야 해. 누락/추가/순서 변경 모두 금지.
-1. 아침 (type: 아침)
-2. 오전 관광지/액티비티 (type: 관광지 또는 액티비티)
-3. 점심 (type: 점심)
-4. 오후 관광지/액티비티 (type: 관광지 또는 액티비티)
-5. 저녁 (type: 저녁)
-6. 야간 관광지 (type: 관광지)
-7. 숙소 (type: 숙소)
+        
+[중복 규칙]
+- (외부 중복) 위 JSON의 excludedNames와 **정규화 비교** 후 하나라도 일치 또는 부분일치(토큰 70%+) 시 **무효**이며, 해당 항목은 즉시 다른 후보로 **교체/재생성**한다.
+- (내부 중복)
+  · **식사/숙소**: 전 일정에서 **중복 0건**(정규화 비교 적용).
+  · **관광지**: 기본적으로 중복 금지이나, **실존 관광지가 부족한 경우에 한해 '대표 관광지'의 제한적 중복을 허용**한다.
+    - 허용 조건:
+      1) 같은 관광지명 재사용은 **여행 전체에서 최대 1회(총 2회까지 등장)**.
+      2) **동일 날짜 내 중복 금지**(하루에 같은 관광지 2번 금지).
+      3) **연속 슬롯 배치 금지**(바로 앞/뒤 슬롯에 같은 관광지 배치 금지).
+      4) 반드시 **공식 명칭 그대로** 사용하고, **동일 좌표(lat/lng)**를 유지한다.
 
-- 하루 7개 항목이 **정확히 포함되어야 하며**, 하나라도 빠지면 전체 일정이 실패야.
-- 모든 날짜에 위 구조를 그대로 반복해.
-- GPT는 생성 후 travelSchedule 배열의 길이가 7개인지 스스로 확인해야 해.
+""");
 
-[장소명(name) 작성 조건]
-- 반드시 **KakaoMap에서 실제로 검색 가능한 상호/장소명만** 사용해야 해.
-- 허구 장소, 감성 키워드, 브랜드명은 절대 금지. 예:
-  - ❌ 감성 키워드: "감성", "전통", "분위기 좋은", "프리미엄", "럭셔리", "고급", "아늑한"
-  - ❌ 허구 조합: "조천휴식공원", "삼양빛오름길", "바다 감성 포차"
-  - ❌ 브랜드: "하이디라오", "스타벅스", "그랜드 하얏트"
-  - ✅ 예시: "서귀포 브런치 카페", "제주시 고기국수 식당", "중문 호텔"
+sb.append("""
+        
+[핵심 규칙]
+1) 날짜별로 정확히 7개 항목만 생성하며, 순서를 엄격히 지킨다:
+   [아침(식사) → 관광지 → 점심(식사) → 관광지 → 저녁(식사) → 관광지 → 숙소]
+   - 누락/추가/순서변경 금지.
+2) 날짜는 요청의 시작일~종료일을 모두 포함하여 "date"에 YYYY-MM-DD 로 표기한다.
+3) 선택한 도시는 **하루라도 벗어나면 안 됨**(인접 시·군·구 이동 금지).
+""");
 
-- 식사/숙소 name은 반드시 "지역 + 업종/음식명 + 식당/호텔/전문점" 형식으로 구성할 것.
-- 관광지 및 액티비티는 KakaoMap 기준 실제 장소명이어야 하며 location 필드 포함 (lat/lng=null).
+sb.append("""
+[관광지(실존·공식 명칭만) 규칙]
+     - 반드시 **실제로 존재**하고 **공식적으로 사용되는 정식 표기 그대로**만 사용한다.
+     - 정식 표기는 다음 중 하나 이상의 **공적 출처**에서 실제로 쓰이는 표기다:
+       · 지자체/기관 공식 페이지  · 한국관광공사  · 시설 간판/안내판
+     - 다음이 하나라도 포함되면 **무효**:
+       · 감성/추상어: 힐링, 감성, 고요한, 생태, 체험, 테마, 역사문화 등
+       · 연결어/조합: ‘및’, ‘그리고’, ‘/’, ‘&’, ‘~’ 등(두 장소 결합/임의 수식)
+       · 비공식 변형/별칭/축약형(예: 남산타워 ⇒ 공식: N서울타워)
+     - **관할 단어(국립/도립/시립/구립)**는 **공식 표기에 실제로 포함될 때만** 사용한다.
+       - 불확실하면 관할 단어를 붙이지 말고, **다른 실존 POI**를 선택한다.
+     - **포괄 지명 단독 금지**(산/공원/해변/둘레길/호수/섬/거리/문화지구 등).
+       - 반드시 내부의 **구체적 공식 시설명**으로 표기한다(정문·방문자센터·전망대·박물관·선착장 등).
+     - **업무/생활 시설 금지**: 주차장, 사옥, 본사, 방송국, MBC, KBS, SBS, 행정복지센터, 구청, 시청, 경찰서, 우체국, 은행, 마트, 백화점, 영화관, 병원, 학교, 캠퍼스
+     - **임의 관할+기관 조합 금지**: <도시명>시립미술관, <도시명>시립박물관, <도시명>도립미술관, <도시명>도립박물관, <도시명>구립미술관, <도시명>구립박물관 (예: "춘천시립미술관" 같은 추정 명칭 금지)
+     - 선택된 **시/군/구 경계 내부**의 장소만 허용한다.
+""");
 
-[지역 음식 제한]
-- 반드시 **해당 지역에서 실제로 자주 소비되는 음식**만 사용할 것.
-  - 예: 제주시 → 고기국수, 흑돼지, 전복죽, 갈치조림, 회 등
-  - ❌ 금지 음식: 한우 전골, 중식, 샤브샤브 등 지역 특색이 아닌 메뉴
-  
-[중복 방지 조건]
-- 전체 일정에서 같은 장소(name 기준)가 2번 이상 등장하면 안 돼.
-- 장소는 매일 바뀌는 것이 기본이며, **이전 날짜에 등장한 장소는 이후 날짜에서 절대 반복 사용하지 마.**
-- name이 조금만 달라 보여도 같은 장소이면 전체 응답은 무효야. GPT가 직접 name을 비교해서 중복 여부를 확인하고 새로 추천해.
+sb.append("""
+[숙소 규칙]
+     - 형식: "지역(시/군/구) + 업종" 또는 "지역(시/군/구) + (실제 동/읍/면명) + 업종"
+       - 예: "제주시 호텔", "서귀포시 리조트", "부산 해운대구 호텔", "제주시 성산읍 호텔"
+     - 허용 업종: 호텔, 리조트, 콘도, 펜션, 게스트하우스, 한옥스테이, 모텔
+     - 금지: 특정 브랜드/체인명(라마다, 롯데, 신라스테이 등)과 수식/감성어(힐링, 오션뷰, 프리미엄 등)
 
+     [식사 규칙]
+     - 형식(정확히): "지역 + 음식종류 + 맛집"
+       - 예: "제주시 전복죽 맛집", "대구시 막창 맛집"
+     - 음식종류는 **실제 음식점 업종에서 흔히 쓰이는 '단일 음식명'**만 허용.
+     - **허용 예시**: 곰탕, 삼겹살, 막창, 회, 초밥, 갈비, 닭갈비, 막국수, 칼국수, 순대, 해장국, 전복죽, 냉면, 갈치조림, 아구찜, 보쌈, 족발, 콩나물국밥, 부대찌개, 찌개, 전골, 우동, 돈까스, 파스타, 피자, 옹심이
+     - **금지**:
+       - 단일 식재료/농산물/가공식품(옥수수, 감자, 고구마, 토마토, 쌀, 밀, 콩 등)
+       - 음료(커피, 차, 주스 등), 디저트(빙수, 케이크, 아이스크림 등), 감성어(현지인 추천, 전통, 브런치 등)
+       - 시간대(아침국수, 야식 등), 조합/복합수식(매실갈비, 허브족발, 건강식, 퓨전요리 등)
+""");
 
-[출력 형식]
-- JSON 외 모든 출력 금지 (설명 문장, 마크다운, 백틱 절대 금지)
-- 날짜별 itinerary 배열 구성
-- 각 일정은 travelSchedule 배열에 포함되며, 각 항목은 type, name, description 포함
-- 관광지 또는 액티비티는 location 필드도 포함 (lat, lng는 null)
+sb.append("""
+[자체 검증 & 재생성 루프(필수)]
+최종 출력 전 다음을 순서대로 점검하고, 하나라도 실패하면 **전체 결과를 내부에서 폐기하고 새로 생성**하여
+모든 항목 통과본만 출력한다. (검증/재생성 과정은 출력하지 않는다)
+1) (E1) excludedNames와의 외부 중복 0건(정규화 적용)
+2) (E2a) 식사/숙소 내부 중복 0건(정규화 적용)
+3) (E2b) 관광지 내부 중복은 '대표 관광지 제한적 중복 허용' 규칙 충족(최대 1회 재사용, 동일 날짜/연속 슬롯 금지, 좌표 동일)
+4) (S) 날짜별 7개 및 순서 일치
+5) (C) 단일 도시 경계 위반 없음
+6) (P) 관광지의 화이트/블랙 규정 위반 없음
+7) (F) 식사/숙소 포맷 위반 없음(실매장/브랜드/지점명 금지)
+""");
 
-[응답 검토 필수]
-- 제외된 장소가 단 1개라도 포함되면 무효
-- 하루 일정 항목 수가 7개가 아니면 무효
-- 위 조건 위반 시 전체 JSON 응답은 실패로 간주됨
-
-[예시]
+sb.append("""
+[출력 스키마]
 {
   "itinerary": [
     {
-      "date": "2025-06-01",
+      "date": "YYYY-MM-DD",
       "travelSchedule": [
-        { "type": "아침", "name": "서귀포 브런치 카페", "description": "..." },
-        { "type": "관광지", "name": "천지연폭포", "location": { "name": "천지연폭포", "lat": null, "lng": null }, "description": "..." },
-        { "type": "점심", "name": "서귀포 고기국수 식당", "description": "..." },
-        { "type": "액티비티", "name": "쇠소깍 카약", "location": { "name": "쇠소깍", "lat": null, "lng": null }, "description": "..." },
-        { "type": "저녁", "name": "서귀포 흑돼지 식당", "description": "..." },
-        { "type": "관광지", "name": "새연교", "location": { "name": "새연교", "lat": null, "lng": null }, "description": "..." },
-        { "type": "숙소", "name": "서귀포 호텔", "description": "..." }
+        { "type": "식사",   "name": "<지역 음식종류 맛집>" },
+        { "type": "관광지", "name": "<공식 POI 명칭>" },
+        { "type": "식사",   "name": "<지역 음식종류 맛집>" },
+        { "type": "관광지", "name": "<공식 POI 명칭>" },
+        { "type": "식사",   "name": "<지역 음식종류 맛집>" },
+        { "type": "관광지", "name": "<공식 POI 명칭>" },
+        { "type": "숙소",   "name": "<지역(동/읍/면) 업종>" }
       ]
     }
   ]
 }
-""");
 
-        if (request.getMbti() != MBTI.NONE) sb.append("- MBTI: ").append(request.getMbti()).append("\n");
-        if (request.getTravelStyle() != TravelStyle.NONE) sb.append("- 여행 성향: ").append(request.getTravelStyle()).append("\n");
-        if (request.getPeopleGroup() != PeopleGroup.NONE) sb.append("- 동행자 유형: ").append(request.getPeopleGroup()).append("\n");
-        if (request.getBudget() != null) sb.append("- 예산: ").append(request.getBudget()).append("원\n");
+""");
 
         return sb.toString();
     }
-
-
 }

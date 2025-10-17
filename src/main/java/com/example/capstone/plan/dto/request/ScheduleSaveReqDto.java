@@ -1,6 +1,5 @@
 package com.example.capstone.plan.dto.request;
 
-import com.example.capstone.plan.entity.FromPrevious;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -30,15 +29,15 @@ public class ScheduleSaveReqDto {
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @AllArgsConstructor
     public static class PlaceRequest {
-        private String name;
         private String type;
-        private String address;
-        private Double lat;
-        private Double lng;
-        private String description;
-        private Integer estimatedCost;
-        private String gptOriginalName;
-        private FromPrevious fromPrevious;
+        private String name;
+        private String hashtag;
+        private int estimatedCost;
+        private double lat;
+        private double lng;
+        private Integer walkTime;
+        private Integer driveTime;
+        private Integer transitTime;
         private Integer placeOrder;
     }
 }

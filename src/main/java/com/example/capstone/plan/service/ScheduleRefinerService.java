@@ -1,16 +1,15 @@
 package com.example.capstone.plan.service;
 
 
-import com.example.capstone.plan.dto.common.FromPreviousDto;
 import com.example.capstone.plan.dto.common.GptPlaceDto;
 import com.example.capstone.plan.dto.common.KakaoPlaceDto;
 import com.example.capstone.plan.dto.common.PlaceDetailDto;
-import com.example.capstone.plan.dto.response.FullScheduleResDto;
+import com.example.capstone.plan.dto.response.ScheduleCreateResDto;
 import com.example.capstone.plan.entity.TravelDay;
 import com.example.capstone.plan.entity.TravelPlace;
 import com.example.capstone.plan.repository.DayRepository;
 import com.example.capstone.plan.repository.PlaceRepository;
-import com.example.capstone.util.gpt.GptPlaceDescriptionPromptBuilder;
+import com.example.capstone.plan.dto.response.ScheduleCreateResDto.PlaceResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +21,48 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ScheduleRefinerService {
 
-    private final OpenAiClient openAiClient;
     private final KakaoMapClient kakaoMapClient;
-    private final GptPlaceDescriptionPromptBuilder gptPlaceDescriptionPromptBuilder;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final DayRepository dayRepository;
     private final PlaceRepository placeRepository;
+
+    public Map<String, List<PlaceResponse>> refine(Map<String, List<GptPlaceDto>> gptMap) {
+        Map<String, List<PlaceResponse>> refinedMap = new LinkedHashMap<>();
+
+        for (Map.Entry<String, List<GptPlaceDto>> entry : gptMap.entrySet()) {
+            String date = entry.getKey();
+            List<GptPlaceDto> gptPlaces = entry.getValue();
+            List<PlaceResponse> refinedPlaces = new ArrayList<>();
+
+            for (GptPlaceDto gpt : gptPlaces) {
+                KakaoPlaceDto kakaoPlace = kakaoMapClient.searchPlaceFromGpt(
+                        gpt.getName(),
+                        gpt.getLocation() != null ? gpt.getLocation().getName() : null,
+                        mapToCategoryCode(gpt.getType())
+                );
+
+                String name = kakaoPlace != null ? kakaoPlace.getPlaceName() : gpt.getName();
+                double lat = kakaoPlace != null ? kakaoPlace.getLatitude() : 0.0;
+                double lng = kakaoPlace != null ? kakaoPlace.getLongitude() : 0.0;
+
+                PlaceResponse place = PlaceResponse.builder()
+                        .type(gpt.getType())
+                        .hashtag(gpt.getName())
+                        .name(name)
+                        .lat(lat)
+                        .lng(lng)
+                        .estimatedCost(0)
+                        .build();
+
+                refinedPlaces.add(place);
+            }
+
+            refinedMap.put(date, refinedPlaces);
+        }
+
+        return refinedMap;
+    }
+
 
 
     /**
@@ -51,13 +86,13 @@ public class ScheduleRefinerService {
                     PlaceDetailDto dto = PlaceDetailDto.builder()
                             .name((String) location.get("name"))
                             .type(type)
-                            .address((String) location.get("name"))
                             .lat((Double) location.get("lat"))
                             .lng((Double) location.get("lng"))
-                            .description(null)
                             .estimatedCost(null)
-                            .fromPrevious(null)
-                            .gptOriginalName(gptName)
+                            .walkTime(null)
+                            .driveTime(null)
+                            .transitTime(null)
+                            .hashtag(gptName)
                             .build();
 
                     refinedPlaces.add(dto);
@@ -71,13 +106,13 @@ public class ScheduleRefinerService {
                     PlaceDetailDto dto = PlaceDetailDto.builder()
                             .name(place.getPlaceName())
                             .type(type)
-                            .address(place.getAddress())
                             .lat(place.getLatitude())
                             .lng(place.getLongitude())
-                            .description(null)
                             .estimatedCost(null)
-                            .fromPrevious(null)
-                            .gptOriginalName(gptName)
+                            .walkTime(null)
+                            .driveTime(null)
+                            .transitTime(null)
+                            .hashtag(gptName)
                             .build();
 
                     refinedPlaces.add(dto);
@@ -140,7 +175,7 @@ public class ScheduleRefinerService {
     private String normalizeType(String rawType) {
         if (rawType == null) return "기타";
         return switch (rawType.trim()) {
-            case "아침", "점심", "저녁", "브런치", "meal" -> "식사";
+            case "아침", "점심", "저녁", "브런치", "meal" -> "식당";
             case "숙소", "호텔", "accommodation" -> "숙소";
             case "관광지", "활동", "activity" -> "관광지";
             default -> rawType;
@@ -184,7 +219,7 @@ public class ScheduleRefinerService {
         return name.replaceAll("(관람|체험|산책|투어|탐방|감상|방문|구경|트래킹)$", "").trim();
     }
 
-    public List<FullScheduleResDto.PlaceResponse> parseGptResponse(String json, List<PlaceDetailDto> baseList) throws Exception {
+    public List<ScheduleCreateResDto.PlaceResponse> parseGptResponse(String json, List<PlaceDetailDto> baseList) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(json);
         if (!root.has("places") || !root.get("places").isArray()) {
@@ -193,33 +228,24 @@ public class ScheduleRefinerService {
 
         JsonNode placesNode = root.get("places");
 
-        List<FullScheduleResDto.PlaceResponse> result = new ArrayList<>();
+        List<ScheduleCreateResDto.PlaceResponse> result = new ArrayList<>();
         for (int i = 0; i < placesNode.size(); i++) {
             JsonNode p = placesNode.get(i);
             PlaceDetailDto base = baseList.get(i);
 
             int estimatedCost = p.has("estimatedCost") ? p.get("estimatedCost").asInt() : 0;
 
-            FromPreviousDto fromPrevious = null;
-            if (p.has("fromPrevious")) {
-                JsonNode t = p.get("fromPrevious");
-                fromPrevious = new FromPreviousDto(
-                        t.has("walk") ? t.get("walk").asInt() : 0,
-                        t.has("publicTransport") ? t.get("publicTransport").asInt() : 0,
-                        t.has("car") ? t.get("car").asInt() : 0
-                );
-            }
 
-            FullScheduleResDto.PlaceResponse response = FullScheduleResDto.PlaceResponse.builder()
+            ScheduleCreateResDto.PlaceResponse response = ScheduleCreateResDto.PlaceResponse.builder()
                     .name(base.getName())
                     .type(base.getType())
-                    .address(base.getAddress())
                     .lat(base.getLat())
                     .lng(base.getLng())
-                    .description(base.getDescription())
-                    .gptOriginalName(base.getGptOriginalName())
+                    .hashtag(base.getHashtag())
                     .estimatedCost(estimatedCost)
-                    .fromPrevious(fromPrevious)
+                    .walkTime(base.getWalkTime())
+                    .driveTime(base.getDriveTime())
+                    .transitTime(base.getTransitTime())
                     .build();
 
             result.add(response);
@@ -253,13 +279,13 @@ public class ScheduleRefinerService {
         return PlaceDetailDto.builder()
                 .name(travelPlace.getName())
                 .type(travelPlace.getType())
-                .address(travelPlace.getAddress())
                 .lat(travelPlace.getLat())
                 .lng(travelPlace.getLng())
-                .description(travelPlace.getDescription())
                 .estimatedCost(travelPlace.getEstimatedCost())
-                .gptOriginalName(travelPlace.getGptOriginalName())
-                .fromPrevious(null) // 필요시 추가
+                .hashtag(travelPlace.getHashtag())
+                .walkTime(null)
+                .driveTime(null)
+                .transitTime(null)
                 .build();
     }
 

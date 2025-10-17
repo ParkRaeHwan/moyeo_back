@@ -16,6 +16,7 @@ java {
 
 
 repositories {
+    google()
     mavenCentral()
 }
 
@@ -56,6 +57,9 @@ dependencies {
     // WebSocket
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
+    // redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 }
 
 // Querydsl 빌드 옵션 설정

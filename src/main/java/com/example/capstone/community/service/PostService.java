@@ -44,16 +44,16 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("User Not Found"));
 
         List<String> imageUriList = new ArrayList<>();
+        String imageUris = null;
 
         if(postImages != null && !postImages.isEmpty()) {
             for (MultipartFile postImage : postImages) {
                 String imageUri = imageService.imageUpload(postImage, POST_IMAGE_DIR);
                 imageUriList.add(imageUri);
             }
+            // Json 배열 직렬화
+            imageUris = objectMapper.writeValueAsString(imageUriList);
         }
-
-        // Json 배열 직렬화
-        String imageUris = objectMapper.writeValueAsString(imageUriList);
 
         Post post = Post.builder()
                 .user(user)
@@ -85,8 +85,12 @@ public class PostService {
     public FullPostResDto getFullPost(Long postId) throws JsonProcessingException {
         Post post = postRepository.findById(postId).orElseThrow(() -> new EntityNotFoundException("Post Not Found"));
 
-        // Json 배열 역 직렬화
-        List<String> imageUriList = objectMapper.readValue(post.getImageUris(), new TypeReference<>() {});
+        List<String> imageUriList = new ArrayList<>();
+
+        if (post.getImageUris() != null && !post.getImageUris().isEmpty()) {
+            // Json 배열 역 직렬화
+            imageUriList = objectMapper.readValue(post.getImageUris(), new TypeReference<>() {});
+        }
 
         return FullPostResDto.builder()
                 .postId(post.getId())
@@ -110,19 +114,23 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("Post Not Found"));
 
         // 기존 이미지 S3 삭제
-        List<String> imageUriList = objectMapper.readValue(post.getImageUris(), new TypeReference<>() {});
-        for (String imageUri : imageUriList) {
-            imageService.deleteImage(imageUri);
+        if (post.getImageUris() != null && !post.getImageUris().isEmpty()) {
+            List<String> imageUriList = objectMapper.readValue(post.getImageUris(), new TypeReference<>() {});
+            for (String imageUri : imageUriList) {
+                imageService.deleteImage(imageUri);
+            }
         }
 
-        List<String> newImageUriList = new ArrayList<>();
-        for (MultipartFile postImage : postImages) {
-            String imageUri = imageService.imageUpload(postImage, POST_IMAGE_DIR);
-            newImageUriList.add(imageUri);
+        String newImageUris = null;
+        if (postImages != null && !postImages.isEmpty()) {
+            List<String> newImageUriList = new ArrayList<>();
+            for (MultipartFile postImage : postImages) {
+                String imageUri = imageService.imageUpload(postImage, POST_IMAGE_DIR);
+                newImageUriList.add(imageUri);
+            }
+            // Json 배열 직렬화
+            newImageUris = objectMapper.writeValueAsString(newImageUriList);
         }
-
-        // Json 배열 직렬화
-        String newImageUris = objectMapper.writeValueAsString(newImageUriList);
 
         post.updatePost(createPostReqDto.getTitle(), createPostReqDto.getContent(), newImageUris, createPostReqDto.getCity(), createPostReqDto.getProvince());
     }
