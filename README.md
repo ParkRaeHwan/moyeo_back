@@ -1,5 +1,5 @@
 <a href="#" target="_blank">
-<img src="" alt="로고" width="100%"/>
+<img src="readme/image/logo.jpg" alt="로고" width="100%"/>
 </a>
 
 <br/>
@@ -17,13 +17,15 @@
 | 박래환 | 정세현 | 백민기 | 최광원 | 김민수 |
 |:------:|:------:|:------:|:------:|:------:|
 |BE|FE|BE|PM|FE|
-|<img src="https://github.com/gone0910/moyeo_back/blob/main/readme/image/%EB%AF%B8%EC%96%B4%EC%BA%A3.jpg" alt="박래환" width="100"> |<img src="https://github.com/gone0910/moyeo_back/blob/main/readme/image/KakaoTalk_20251014_201803617.jpg" alt="정세현" width="100">||||
+|<img src="readme/image/미어캣.jpg" alt="박래환" width="100"> |<img src="readme/image/KakaoTalk_20251014_201803617.jpg" alt="정세현" width="100">||||
 |[GitHub](https://github.com/ParkRaeHwan)|[GitHub](https://github.com/nyago17)|[GitHub](https://github.com/ignim001)|[GitHub](https://github.com/gone0910)|[GitHub](https://github.com/damchun)|
 
 <br/>
 <br/>
 
-# 3. Key Features (주요 기능)
+# 3. 
+
+# 4. Key Features (주요 기능)
 - **회원가입 및 로그인**:
   - Oauth2.0 기반 Kakao, Google 로그인
 
@@ -48,23 +50,24 @@
 <br/>
 <br/>
 
-# 4. Tasks & Responsibilities (작업 및 역할 분담)
-| 이름 | 사진 | 업무 |
-|-----|-----:|-----|
-| 박래환 | <img src="https://github.com/gone0910/moyeo_back/blob/main/readme/image/%EB%AF%B8%EC%96%B4%EC%BA%A3.jpg" alt="박래환" width="100"> | BE |
-| 최광원 | | PM |
-| 정세현 | <img src="https://github.com/gone0910/moyeo_back/blob/main/readme/image/KakaoTalk_20251014_201803617.jpg" alt="정세현" width="100"> | FE |
-| 백민기 | | BE |
-| 김민수 | | FE |
+# 5. Tasks & Responsibilities (작업 및 역할 분담)
+| 이름 | 분야 | 업무 내용 |
+|-----|----|-------|
+| 박래환 | BE |       |
+| 최광원 | PM |       |
+| 정세현 | FE |       |
+| 백민기 | BE |       |
+| 김민수 | FE |       |
 
 <br/>
 <br/>
 
-# 5. Technology Stack (기술 스택)
-<img src="" alt="아키텍처" width="100%"/>
+# 6. 아키텍처 (기술 스택 및 ERD)
+## 기술 스택
+<img src="readme/image/system.png" alt="아키텍처" width="100%"/>
 <br/>
 
-## 5.4 Cooperation
+## 기술 스택 설명
 | 툴 | 설명 |
 |---|---|
 | Git |  |
@@ -72,15 +75,8 @@
 | Google Docs |  |
 | Notion |  |
 
-<br/>
-
-# 7. Development Workflow (개발 워크플로우)
-## 브랜치 전략 (Branch Strategy)
-- Main Branch:
-- Feature Branches:
+## ERD
+<img src="readme/image/ERD.png" alt="ERD" width="100%">
 
 <br/>
-<br/>
-
-- 참고 링크:
 
