@@ -127,10 +127,10 @@ spring:
       on-profile: prod
 
   datasource:
-    url: jdbc:mysql://${RDS-ENDPOINT}:3306/${DB_NAME}?serverTimezone=Asia/Seoul&useSSL=false
+    url: jdbc:mysql://mysql:3306/${DB_NAME}?serverTimezone=Asia/Seoul&useSSL=false
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${RDS_USERNAME}
-    password: ${RDS_PASSWORD}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
