@@ -42,9 +42,7 @@ public class WebSecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-resources/**",
                                 "/v3/api-docs/**",
-                                "/swagger-ui.html",
-                                "/schedule/**",
-                                "/chatbot/**"
+                                "/swagger-ui.html"
 
                                 ).permitAll()
                         .anyRequest().authenticated())
@@ -53,7 +51,7 @@ public class WebSecurityConfig {
                         .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(
                                 new CustomAuthorizationRequestResolver(clientRegistrationRepository)))
                         .successHandler(customSuccessfulHandler))
-                //.addFilterBefore(new JWTFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JWTFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
 
         return http.build();
