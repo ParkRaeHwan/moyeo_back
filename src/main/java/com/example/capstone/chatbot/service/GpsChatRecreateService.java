@@ -18,12 +18,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+
 @Service
 @RequiredArgsConstructor
 public class GpsChatRecreateService {
 
     private final KakaoMapClient kakaoMapClient;
-    private final GeminiClient geminiClient;   // ★ 변경: 필드 교체
+    private final GeminiClient geminiClient;
     private final ChatBotParseService parseService;
     private final TourApiClient tourApiClient;
 
@@ -117,36 +118,36 @@ public class GpsChatRecreateService {
 
     public List<SpotResDto> recreateSpot(double lat, double lng, List<String> excludedNames) {
         try {
+            // 1️ 제외할 장소 리스트 복사
             List<String> updatedExcluded = new ArrayList<>(excludedNames);
-            List<SpotResDto> results = new ArrayList<>();
 
-            int i = 0;
-            while (results.size() < 3) {
-                // SpotRecreatePromptBuilder 시그니처가 (int, City, double, double, List<String>) 라면
-                // City는 GPS 기반이라 null로 유지 (빌더 내부에서 좌표 기준 검색)
-                String prompt = spotRecreatePromptBuilder.build(i, null, lat, lng, updatedExcluded);
-                String response = geminiClient.callGemini(prompt); // ★ 변경
+            // 2️ 프롬프트 한 번만 생성 (한 번에 3개 관광지 요청)
+            String prompt = spotRecreatePromptBuilder.build(0, null, lat, lng, updatedExcluded);
 
-                SpotResDto dto;
-                try {
-                    dto = (SpotResDto) parseService.parseResponse(ChatCategory.SPOT, response);
-                } catch (Exception e) {
-                    continue; // 파싱 실패 → 다음 반복
-                }
+            // 3️ Gemini 모델 호출
+            String responseJson = geminiClient.callGemini(prompt);
 
-                if (dto == null || dto.getName() == null || updatedExcluded.contains(dto.getName())) {
-                    continue;
-                }
+            // 4 GPT 응답을 Spot 리스트로 파싱 (ChatBotParseService 사용)
+            List<SpotResDto> results = (List<SpotResDto>) parseService.parseResponse(ChatCategory.SPOT, responseJson);
 
-                results.add(dto);
-                updatedExcluded.add(dto.getName());
-                i++;
+            // 5 null 또는 중복된 이름 제거 + 제외 목록 반영
+            if (results == null || results.isEmpty()) {
+                return List.of();
             }
 
-            return results;
+            Set<String> seen = new HashSet<>(updatedExcluded);
+            results.removeIf(spot ->
+                    spot.getName() == null ||      // 이름 누락 제거
+                            !seen.add(spot.getName())      // 중복 제거
+            );
+
+            // 6️ 최종 결과 반환
+            return results.isEmpty() ? List.of() : results;
 
         } catch (Exception e) {
             throw new RuntimeException("GPS 관광지 재조회 실패", e);
         }
     }
+
+
 }

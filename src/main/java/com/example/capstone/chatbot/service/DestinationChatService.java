@@ -34,7 +34,7 @@ public class DestinationChatService {
     private final HotelPromptBuilder hotelPromptBuilder;
     private final FestivalPromptBuilder festivalPromptBuilder;
     private final SpotPromptBuilder spotPromptBuilder;
-    private final GeminiClient geminiClient;         // ★ 변경: 필드 교체
+    private final GeminiClient geminiClient;
     private final TourApiClient tourApiClient;
     private final ChatBotParseService parseService;
     private final ObjectMapper objectMapper;
@@ -127,8 +127,8 @@ public class DestinationChatService {
     }
 
     public List<SpotResDto> getSpot(City city) throws Exception {
-        String prompt = spotPromptBuilder.build(city);           // ★ 1회 프롬프트
-        String json = geminiClient.callGemini(prompt);           // ★ 1회 호출
+        String prompt = spotPromptBuilder.build(city);
+        String json = geminiClient.callGemini(prompt);
 
         List<SpotResDto> results = (List<SpotResDto>) parseService.parseResponse(ChatCategory.SPOT, json);
 

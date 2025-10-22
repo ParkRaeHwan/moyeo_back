@@ -24,7 +24,7 @@ import java.util.stream.StreamSupport;
 @RequiredArgsConstructor
 public class DestinationChatRecreateService {
 
-    private final GeminiClient geminiClient;     // ★ 변경: OpenAiClient → GeminiClient
+    private final GeminiClient geminiClient;
     private final ChatBotParseService parseService;
     private final KakaoMapClient kakaoMapClient;
     private final TourApiClient tourApiClient;
@@ -120,34 +120,35 @@ public class DestinationChatRecreateService {
         try {
             City city = req.getCity();
             List<String> excludedNames = new ArrayList<>(req.getExcludedNames());
-            List<SpotResDto> result = new ArrayList<>();
 
-            for (int i = 0; i < 3; i++) {
-                try {
-                    String prompt = spotRecreatePromptBuilder.build(i, city, null, null, excludedNames);
-                    String response = geminiClient.callGemini(prompt); // ★ 변경
-                    SpotResDto dto = (SpotResDto) parseService.parseResponse(ChatCategory.SPOT, response);
+            // 프롬프트 한 번만 생성 (기존 3회 반복 제거)
+            String prompt = spotRecreatePromptBuilder.build(0, city, null, null, excludedNames);
 
-                    if (dto == null || dto.getName() == null || excludedNames.contains(dto.getName())) {
-                        i--; // 실패/중복 시 재시도
-                        continue;
-                    }
+            // Gemini 모델 호출
+            String json = geminiClient.callGemini(prompt);
 
-                    result.add(dto);
-                    excludedNames.add(dto.getName());
-                } catch (Exception e) {
-                    System.err.println("[Spot GPT 파싱 실패] i=" + i + ": " + e.getMessage());
-                    i--; // 실패했으니 반복 재시도
-                }
+            // GPT 응답을 Spot 리스트로 파싱
+            List<SpotResDto> results = (List<SpotResDto>) parseService.parseResponse(ChatCategory.SPOT, json);
+
+            // 예외 처리: null 혹은 이름 중복 제거
+            if (results == null || results.isEmpty()) {
+                return List.of();
             }
 
-            return result;
+            // 중복 필터링 (excludedNames 기준)
+            List<SpotResDto> filtered = results.stream()
+                    .filter(dto -> dto.getName() != null && !excludedNames.contains(dto.getName()))
+                    .toList();
+
+            // 최종 결과 반환 (없으면 빈 리스트)
+            return filtered.isEmpty() ? List.of() : filtered;
 
         } catch (Exception e) {
             e.printStackTrace();
             return List.of();
         }
     }
+
 
     private List<JsonNode> extractFestivalItems(JsonNode responseJson) {
         if (responseJson.isArray()) {
