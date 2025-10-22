@@ -32,7 +32,7 @@ public class GpsChatService {
     private final HotelPromptBuilder hotelPromptBuilder;
     private final FestivalPromptBuilder festivalPromptBuilder;
     private final SpotPromptBuilder spotPromptBuilder;
-    private final GeminiClient geminiClient;            // ★ 변경: 필드 교체
+    private final GeminiClient geminiClient;
     private final TourApiClient tourApiClient;
     private final ChatBotParseService parseService;
     private final ObjectMapper objectMapper;
