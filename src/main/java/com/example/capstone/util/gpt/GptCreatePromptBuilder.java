@@ -23,7 +23,7 @@ public class GptCreatePromptBuilder {
         boolean isDomestic = request.getDestination() == City.NONE;
         String destinationText = isDomestic ? "국내" : request.getDestination().getDisplayName();
 
-        // ── 컨텍스트 ───────────────────────────────────────────────────────────────
+
         sb.append(String.format("""
 다음 요구사항에 따라 여행 일정을 생성하라.
 
