@@ -28,7 +28,7 @@ public class JWTFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 해당 경로 검증 X
         String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/oauth2/") || requestURI.startsWith("/auth/reissue") || requestURI.startsWith("/auth/logout") || requestURI.startsWith("/connect/**")) {
+        if (requestURI.startsWith("/oauth2/") || requestURI.startsWith("/auth/reissue") || requestURI.startsWith("/auth/logout") || requestURI.startsWith("/connect")) {
             filterChain.doFilter(request, response);
             return;
         }
