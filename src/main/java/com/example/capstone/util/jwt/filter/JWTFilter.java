@@ -28,7 +28,7 @@ public class JWTFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 해당 경로 검증 X
         String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/oauth2/") || requestURI.startsWith("/auth/reissue") || requestURI.startsWith("/auth/logout")) {
+        if (requestURI.startsWith("/oauth2/") || requestURI.startsWith("/auth/reissue") || requestURI.startsWith("/auth/logout") || requestURI.startsWith("/connect/**")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -38,6 +38,7 @@ public class JWTFilter extends OncePerRequestFilter {
         
         // 임시 토큰 검증 (회원 가입 시)
         try {
+            // Todo : 구조 최적화
             if (requestURI.startsWith("/auth/signup")) {
                 if (token == null || !jwtUtil.validateJwt(token) || !"TEMP".equals(jwtUtil.getTypeFromJwt(token))) {
                     sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "Invalid temporary token");
