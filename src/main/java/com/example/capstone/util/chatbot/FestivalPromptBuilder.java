@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 public class FestivalPromptBuilder {
 
     /**
-     * ✅ GPT 4o용: 축제 1건 단위 프롬프트 (JSON 객체로 응답 강제)
      */
     public String buildSingle(JsonNode item) {
         String name = item.path("title").asText();
