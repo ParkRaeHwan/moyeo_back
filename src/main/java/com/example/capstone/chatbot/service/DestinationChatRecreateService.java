@@ -98,7 +98,7 @@ public class DestinationChatRecreateService {
             for (JsonNode item : rawFestivals) {
                 try {
                     String prompt = festivalRecreatePromptBuilder.build(item);
-                    String gptResponse = geminiClient.callGemini(prompt); // ★ 변경
+                    String gptResponse = geminiClient.callGemini(prompt);
                     FestivalResDto dto = (FestivalResDto) parseService.parseResponse(
                             ChatCategory.FESTIVAL, gptResponse);
                     result.add(dto);
