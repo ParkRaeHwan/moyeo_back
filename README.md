@@ -13,12 +13,12 @@
 또한, 방대한 여행지 정보의 효율적인 탐색과 최적화된 여행 경로 추천 기능을 통해, 사용자가 계획의 부담에서 벗어나 여행 자체의 즐거움에만 집중할 수 있도록 돕습니다.
 
 # 2. Team Members (팀원 및 팀 소개)
-|                                     박래환                                     |                                        정세현                                         |                             백민기                              |                             최광원                              |                             김민수                              |
-|:---------------------------------------------------------------------------:|:----------------------------------------------------------------------------------:|:------------------------------------------------------------:|:------------------------------------------------------------:|:------------------------------------------------------------:|
-|                                     BE                                      |                                         FE                                         |                              BE                              |                              PM                              |                              FE                              |
-|        <img src="readme/image/prh_image.jpg" alt="박래환" width="100">         |            <img src="readme/image/jsh_image.jpg" alt="정세현" width="100">            | <img src="readme/image/pmg_image.jpg" alt="백민기" width="100"> | <img src="readme/image/cgw_image.jpg" alt="최광원" width="100"> | <img src="readme/image/kms_image.jpg" alt="김민수" width="100"> |
-|                  [GitHub](https://github.com/ParkRaeHwan)                   |                        [GitHub](https://github.com/nyago17)                        |            [GitHub](https://github.com/ignim001)             |            [GitHub](https://github.com/gone0910)             |             [GitHub](https://github.com/damchun)             |
-| - Back-End 총괄 - OAuth 기반 로그인 및 회원가입 구현, 사용자, 채팅(WebSocket), 커뮤니티, 매칭 도메인 구현 | - Front-End 총괄 - 로그인, 여행자 매칭, AI 여행 플랜, 채팅(WebSocket), 커뮤니티 등 주요 기능 전반의 화면 및 로직 구현 |                                                              |                                                              |                                                              |
+|                                                        박래환                                                        |                                        정세현                                         |                             백민기                              |                                       최광원                                       |                             김민수                              |
+|:-----------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------:|:------------------------------------------------------------:|:-------------------------------------------------------------------------------:|:------------------------------------------------------------:|
+|                                                        BE                                                         |                                         FE                                         |                              BE                              |                                       PM                                        |                              FE                              |
+|                           <img src="readme/image/prh_image.jpg" alt="박래환" width="100">                            |            <img src="readme/image/jsh_image.jpg" alt="정세현" width="100">            | <img src="readme/image/pmg_image.jpg" alt="백민기" width="100"> |          <img src="readme/image/cgw_image.jpg" alt="최광원" width="100">           | <img src="readme/image/kms_image.jpg" alt="김민수" width="100"> |
+|                                     [GitHub](https://github.com/ParkRaeHwan)                                      |                        [GitHub](https://github.com/nyago17)                        |            [GitHub](https://github.com/ignim001)             |                      [GitHub](https://github.com/gone0910)                      |             [GitHub](https://github.com/damchun)             |
+| - Back-End 총괄 - OAuth 기반 로그인 및 회원가입 구현, 사용자, 채팅(WebSocket/STOMP), 커뮤니티, 매칭 도메인 구현, CI/CD 파이프라인 구축(Github Actions) | - Front-End 총괄 - 로그인, 여행자 매칭, AI 여행 플랜, 채팅(WebSocket), 커뮤니티 등 주요 기능 전반의 화면 및 로직 구현 |   - Gemini api를 활용한 여행일정 자동 생성 및KakaoMap, TMap, TourAPI등 외부 API연동을 통한 실제 장소 데이터 정제/ 사용자 맞춤 여행 정보 응답형 AI챗봇 설계                                                           | - 팀장 - 프로젝트 전반 UI/UX 기획 / Figma를 통한 각 화면 및 디자인 설계 / 요구사항 명세서, 회의록 등의 문서 작성 및 관리 |                                                              |
 <br/>
 
 # 3. Key Features (주요 기능)
@@ -63,7 +63,8 @@
 <img src="readme/image/ERD.png" alt="ERD" width="100%">
 <br/>
 
-# 5. 
+# 5. 시연 영상
+<video src="">
 
 # 6. 
 
