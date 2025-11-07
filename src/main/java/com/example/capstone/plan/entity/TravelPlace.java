@@ -2,13 +2,10 @@ package com.example.capstone.plan.entity;
 
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Builder;
-import lombok.AllArgsConstructor;
+import lombok.*;
 
 @Entity
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
