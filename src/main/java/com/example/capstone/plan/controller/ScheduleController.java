@@ -49,8 +49,6 @@ public class ScheduleController {
         return ResponseEntity.ok(response);
     }
 
-
-
     @Operation(summary = "추천 일정 저장", description = "사용자가 확정한 여행 일정을 데이터베이스에 저장합니다.")
     @PostMapping("/save")
     public ResponseEntity<ScheduleSaveResDto> saveSchedule(

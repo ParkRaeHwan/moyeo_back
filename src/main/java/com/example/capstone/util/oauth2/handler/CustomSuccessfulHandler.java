@@ -45,8 +45,8 @@ public class CustomSuccessfulHandler extends SimpleUrlAuthenticationSuccessHandl
             String refreshToken = jwtUtil.generateToken("REFRESH", oAuth2User.getProviderId(), oAuth2User.getEmail(), oAuth2User.getNickname());
             log.info("access {}, refresh {}", accessToken, refreshToken);
 
-            // Todo: refreshToken Redis 저장
-            redisTemplate.opsForValue().set("REFRESH:" + oAuth2User.getNickname(), refreshToken, refreshExpiationMs, TimeUnit.MILLISECONDS);
+            // refreshToken Redis 저장
+            redisTemplate.opsForValue().set("REFRESH:%s".formatted(oAuth2User.getNickname()), refreshToken, refreshExpiationMs, TimeUnit.MILLISECONDS);
 
             String redirectUrl = redirectUri + "?mode=login&access=" + accessToken + "&refresh=" + refreshToken;
             response.sendRedirect(redirectUrl);

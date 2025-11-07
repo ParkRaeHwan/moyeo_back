@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -30,19 +29,20 @@ public class AuthService {
         String providerId = jwtUtil.getProviderIdFromJwt(refreshToken);
         String email = jwtUtil.getEmailFromJwt(refreshToken);
 
-        // Todo: Redis 통한 Refresh 토큰 유효성 검증 후 삭제
-        String storedRefreshToken = redisTemplate.opsForValue().get("REFRESH:" + nickname);
+        // Redis 통한 Refresh 토큰 유효성 검증 후 삭제
+        String storedRefreshToken = redisTemplate.opsForValue().get("REFRESH:%s".formatted(nickname));
         if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
             throw new InvalidTokenException("Invalid refresh token");
         }
 
-        redisTemplate.delete("REFRESH:" + nickname);
+        // access Token 블랙리스트 등록 (refresh 토큰은 삭제하므로 별도 등록 X)
+        redisTemplate.delete("REFRESH:%s".formatted(nickname));
 
-        // Todo: 새 Refresh 토큰 저장
+        // 새 Refresh 토큰 저장
         String newAccessToken = jwtUtil.generateToken("ACCESS", providerId, email, nickname);
         String newRefreshToken = jwtUtil.generateToken("REFRESH", providerId, email, nickname);
 
-        redisTemplate.opsForValue().set("REFRESH:" + nickname, newRefreshToken, refreshExpiationMs, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set("REFRESH:%s".formatted(nickname), newRefreshToken, refreshExpiationMs, TimeUnit.MILLISECONDS);
 
         return SignupResDto.builder()
                 .refreshToken(newRefreshToken)
@@ -56,12 +56,12 @@ public class AuthService {
         }
         String nickname = jwtUtil.getNicknameFromJwt(refreshToken);
 
-        // Todo: Redis 통한 Refresh 토큰 유효성 검증
-        String storedRefreshToken = redisTemplate.opsForValue().get("REFRESH:" + nickname);
+        // Redis 통한 Refresh 토큰 유효성 검증
+        String storedRefreshToken = redisTemplate.opsForValue().get("REFRESH:%s".formatted(nickname));
         if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
             throw new InvalidTokenException("Invalid refresh token");
         }
 
-        redisTemplate.delete("REFRESH:" + nickname);
+        redisTemplate.delete("REFRESH:%s".formatted(nickname));
     }
 }

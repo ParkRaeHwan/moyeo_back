@@ -33,7 +33,7 @@ public class JwtUtil {
         long expirationMs = type.equals("ACCESS") ? jwtAccessExpirationMs : jwtRefreshExpirationMs;
         return Jwts.builder()
                 .setSubject(providerId)
-                .claim("email", email)
+                .claim("email", email) // Todo: email 데이터 필요한지 확인
                 .claim("nickname", nickname)
                 .claim("type", type)
                 .setIssuedAt(new Date())

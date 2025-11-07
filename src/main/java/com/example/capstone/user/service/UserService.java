@@ -69,8 +69,8 @@ public class UserService {
         String accessToken = jwtUtil.generateToken("ACCESS", user.getProviderId(), user.getEmail(), user.getNickname());
         String refreshToken = jwtUtil.generateToken("REFRESH", user.getProviderId(), user.getEmail(), user.getNickname());
 
-        // Todo: Refresh 토큰 Redis 저장
-        redisTemplate.opsForValue().set("REFRESH:" + user.getNickname(), refreshToken, refreshExpiationMs, TimeUnit.MILLISECONDS);
+        // Refresh 토큰 Redis 저장
+        redisTemplate.opsForValue().set("REFRESH:%s".formatted(user.getNickname()), refreshToken, refreshExpiationMs, TimeUnit.MILLISECONDS);
 
         return SignupResDto.builder()
                 .accessToken(accessToken)
