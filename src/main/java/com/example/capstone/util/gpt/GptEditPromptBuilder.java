@@ -19,7 +19,7 @@ public class GptEditPromptBuilder {
               "places": [
                 {
                   "name": "<입력 그대로>",
-                  "type": "식사|숙소|관광지|액티비티",
+                  "type": "식사|숙소|관광지|",
                   "estimatedCost": <정수(원)>,
                   "description": "<20자 내외 한 줄>",
                   "hashtag": "<지역+업종 기반 해시태그형 설명>"

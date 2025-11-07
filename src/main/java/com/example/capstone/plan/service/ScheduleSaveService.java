@@ -32,6 +32,7 @@ public class ScheduleSaveService {
 
     @Transactional
     public ScheduleSaveResDto saveSchedule(ScheduleSaveReqDto request, CustomOAuth2User userDetails) {
+
         String providerId = userDetails.getProviderId();
         UserEntity user = userRepository.findByProviderId(providerId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));

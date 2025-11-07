@@ -7,18 +7,48 @@ services:
     ports:
       - "8080:8080"
     depends_on:
+      mysql:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
+  mysql:
+    container_name: mysql
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: 'Asia/Seoul'
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/conf.d:/etc/mysql/conf.d
+    command:
+      - "mysqld"
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_unicode_ci"
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+      
   redis:
     container_name: redis
     image: redis:latest
     ports:
       - "6379:6379"
+    restart: on-failure
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       retries: 10
 
-
+networks:
+  default:
+    driver: bridge
 

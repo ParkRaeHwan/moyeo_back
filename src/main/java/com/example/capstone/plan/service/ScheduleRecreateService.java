@@ -92,7 +92,7 @@ public class ScheduleRecreateService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            throw new RuntimeException("일정 재생성 중 오류 발생: " + e.getMessage(), e);
         }
     }
 

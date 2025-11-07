@@ -6,10 +6,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,31 +23,33 @@ public class KakaoMapClient {
     private String kakaoApiKey;
 
     private final ObjectMapper objectMapper;
-    private final WebClient.Builder webClientBuilder;
+    private final RestTemplateBuilder restTemplateBuilder;
 
-    private WebClient getWebClient() {
-        return webClientBuilder
-                .baseUrl("https://dapi.kakao.com")
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "KakaoAK " + kakaoApiKey)
+    private RestTemplate getRestTemplate() {
+        return restTemplateBuilder
+                .setConnectTimeout(Duration.ofSeconds(5))
+                .setReadTimeout(Duration.ofSeconds(10))
                 .build();
     }
-    //  위도경도 → City enum
+
+    // 위도경도 → City enum
     public City getCityFromLatLng(double lat, double lng) {
         try {
-            String response = getWebClient().get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/v2/local/geo/coord2regioncode.json")
-                            .queryParam("x", lng)
-                            .queryParam("y", lat)
-                            .build())
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            String url = String.format(
+                    "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?x=%f&y=%f",
+                    lng, lat
+            );
 
-            JsonNode documents = objectMapper.readTree(response).get("documents");
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "KakaoAK " + kakaoApiKey);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = getRestTemplate()
+                    .exchange(url, HttpMethod.GET, entity, String.class);
+
+            JsonNode documents = objectMapper.readTree(response.getBody()).get("documents");
             if (documents != null && documents.size() > 0) {
                 String region2 = documents.get(0).path("region_2depth_name").asText();
-
                 for (City city : City.values()) {
                     if (region2.contains(city.getDisplayName())) {
                         return city;
@@ -58,7 +62,7 @@ public class KakaoMapClient {
         throw new RuntimeException("좌표에 대응하는 City를 찾을 수 없습니다");
     }
 
-    // GPT 장소 정제용 (단일 결과)
+    // GPT 장소 정제용
     public KakaoPlaceDto searchPlaceFromGpt(String gptName, String locationName, String categoryCode) {
         if (locationName != null && !locationName.isBlank()) {
             KakaoPlaceDto result = searchPlaceWithCategory(locationName, categoryCode);
@@ -67,7 +71,7 @@ public class KakaoMapClient {
         return searchPlaceWithCategory(gptName, categoryCode);
     }
 
-    // 일반 키워드 검색 (단일 결과)
+    // 일반 키워드 검색
     public KakaoPlaceDto searchPlace(String keyword) {
         return searchPlaceWithCategory(keyword, null);
     }
@@ -75,21 +79,19 @@ public class KakaoMapClient {
     // 단일 장소 검색
     public KakaoPlaceDto searchPlaceWithCategory(String keyword, String categoryCode) {
         try {
-            String response = getWebClient().get()
-                    .uri(uriBuilder -> {
-                        var builder = uriBuilder
-                                .path("/v2/local/search/keyword.json")
-                                .queryParam("query", keyword);
-                        if (categoryCode != null && !categoryCode.isBlank()) {
-                            builder.queryParam("category_group_code", categoryCode);
-                        }
-                        return builder.build();
-                    })
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            String url = "https://dapi.kakao.com/v2/local/search/keyword.json?query=" + keyword;
+            if (categoryCode != null && !categoryCode.isBlank()) {
+                url += "&category_group_code=" + categoryCode;
+            }
 
-            JsonNode documents = objectMapper.readTree(response).get("documents");
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "KakaoAK " + kakaoApiKey);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = getRestTemplate()
+                    .exchange(url, HttpMethod.GET, entity, String.class);
+
+            JsonNode documents = objectMapper.readTree(response.getBody()).get("documents");
 
             if (documents != null && documents.size() > 0) {
                 for (JsonNode doc : documents) {
@@ -100,32 +102,28 @@ public class KakaoMapClient {
                 }
                 return extractPlaceFromJson(documents.get(0));
             }
-
         } catch (Exception e) {
             throw new RuntimeException("KakaoMap 검색 중 오류 발생", e);
         }
-
         return null;
     }
 
-    // 다중 장소 검색 (챗봇 목적지용)
+    // 다중 장소 검색
     public List<KakaoPlaceDto> searchPlacesWithCategory(String keyword, String categoryCode) {
         try {
-            String response = getWebClient().get()
-                    .uri(uriBuilder -> {
-                        var builder = uriBuilder
-                                .path("/v2/local/search/keyword.json")
-                                .queryParam("query", keyword);
-                        if (categoryCode != null && !categoryCode.isBlank()) {
-                            builder.queryParam("category_group_code", categoryCode);
-                        }
-                        return builder.build();
-                    })
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            String url = "https://dapi.kakao.com/v2/local/search/keyword.json?query=" + keyword;
+            if (categoryCode != null && !categoryCode.isBlank()) {
+                url += "&category_group_code=" + categoryCode;
+            }
 
-            JsonNode documents = objectMapper.readTree(response).get("documents");
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "KakaoAK " + kakaoApiKey);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = getRestTemplate()
+                    .exchange(url, HttpMethod.GET, entity, String.class);
+
+            JsonNode documents = objectMapper.readTree(response.getBody()).get("documents");
             List<KakaoPlaceDto> result = new ArrayList<>();
 
             if (documents != null && documents.size() > 0) {
@@ -139,27 +137,24 @@ public class KakaoMapClient {
         } catch (Exception e) {
             throw new RuntimeException("KakaoMap 다중 장소 검색 중 오류 발생", e);
         }
-
     }
 
-    // GPS 기반 다중 장소 검색 (반경 내 카테고리 장소)
+    // GPS 기반 다중 장소 검색
     public List<KakaoPlaceDto> searchPlacesByCategory(double lat, double lng, String categoryCode) {
         try {
-            String response = getWebClient().get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/v2/local/search/category.json")
-                            .queryParam("category_group_code", categoryCode)
-                            .queryParam("x", lng)  // 경도
-                            .queryParam("y", lat)  // 위도
-                            .queryParam("radius", 5000)  // 5km 이내
-                            .queryParam("sort", "distance") // 거리순 정렬
-                            .build()
-                    )
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            String url = String.format(
+                    "https://dapi.kakao.com/v2/local/search/category.json?category_group_code=%s&x=%f&y=%f&radius=5000&sort=distance",
+                    categoryCode, lng, lat
+            );
 
-            JsonNode documents = objectMapper.readTree(response).get("documents");
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "KakaoAK " + kakaoApiKey);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = getRestTemplate()
+                    .exchange(url, HttpMethod.GET, entity, String.class);
+
+            JsonNode documents = objectMapper.readTree(response.getBody()).get("documents");
             List<KakaoPlaceDto> result = new ArrayList<>();
 
             if (documents != null && documents.size() > 0) {
@@ -177,7 +172,6 @@ public class KakaoMapClient {
 
     // 재조회 전용: City + 카테고리 코드 + 개수 제한
     public List<KakaoPlaceDto> searchTopPlacesByCityAndCategory(City city, String categoryCode, int limit) {
-        // 수정: City에서 좌표 직접 가져오지 않고 Kakao 키워드 검색으로 추출
         KakaoPlaceDto cityCenter = searchPlace(city.getDisplayName());
         if (cityCenter == null) {
             throw new RuntimeException("도시 중심 좌표 검색 실패: " + city.getDisplayName());
@@ -185,24 +179,22 @@ public class KakaoMapClient {
         return searchTopPlacesByCategory(cityCenter.getLatitude(), cityCenter.getLongitude(), categoryCode, limit);
     }
 
-    // 내부적으로 호출할 좌표 기반 로직
+    // 내부 재조회 로직
     public List<KakaoPlaceDto> searchTopPlacesByCategory(double lat, double lng, String categoryCode, int limit) {
         try {
-            String response = getWebClient().get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/v2/local/search/category.json")
-                            .queryParam("category_group_code", categoryCode)
-                            .queryParam("x", lng)
-                            .queryParam("y", lat)
-                            .queryParam("radius", 5000)
-                            .queryParam("sort", "distance")
-                            .build()
-                    )
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            String url = String.format(
+                    "https://dapi.kakao.com/v2/local/search/category.json?category_group_code=%s&x=%f&y=%f&radius=5000&sort=distance",
+                    categoryCode, lng, lat
+            );
 
-            JsonNode documents = objectMapper.readTree(response).get("documents");
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "KakaoAK " + kakaoApiKey);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = getRestTemplate()
+                    .exchange(url, HttpMethod.GET, entity, String.class);
+
+            JsonNode documents = objectMapper.readTree(response.getBody()).get("documents");
             List<KakaoPlaceDto> result = new ArrayList<>();
 
             if (documents != null && documents.size() > 0) {
@@ -219,23 +211,21 @@ public class KakaoMapClient {
         }
     }
 
-    // JSON → DTO 변환 공통 메서드
+    // JSON → DTO 변환
     private KakaoPlaceDto extractPlaceFromJson(JsonNode doc) {
         String name = doc.path("place_name").asText();
         double lat = doc.path("y").asDouble();
         double lon = doc.path("x").asDouble();
         String roadAddress = doc.path("road_address_name").asText();
         String jibunAddress = doc.path("address_name").asText();
-        String address;
-        if (roadAddress != null && !roadAddress.isBlank()) {
-            address = roadAddress;
-        } else if (jibunAddress != null && !jibunAddress.isBlank()) {
-            address = jibunAddress;
-        } else {
-            address = "주소 정보 없음";
-        }
+
+        String address = (roadAddress != null && !roadAddress.isBlank()) ? roadAddress :
+                (jibunAddress != null && !jibunAddress.isBlank()) ? jibunAddress :
+                        "주소 정보 없음";
+
         String phone = doc.path("phone").asText("");
         String category = doc.path("category_group_code").asText("");
+
         return new KakaoPlaceDto(name, lat, lon, address, phone, category);
     }
 
@@ -244,5 +234,4 @@ public class KakaoMapClient {
         if (result != null) return result;
         return new KakaoPlaceDto(hashtag, 0.0, 0.0, "주소 정보 없음", "", "");
     }
-
 }

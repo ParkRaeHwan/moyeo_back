@@ -67,6 +67,11 @@ public enum City {
     YANGJU_SI("양주시", 31, 25),
     GWANGJU_SI("광주시", 31, 26),
     PAJU_SI("파주시", 31, 27),
+    GIMPO_SI("김포시", 31, 28),
+    GWANGMYEONG_SI("광명시", 31, 29),
+    UIWANG_SI("의왕시", 31, 30),
+    YEOJU_SI("여주시", 31, 31),
+
 
     // 강원도 (areaCode: 32)
     CHUNCHEON_SI("춘천시", 32, 1),
@@ -87,6 +92,8 @@ public enum City {
     BUYEO_GUN("부여군", 34, 7),
     HONGSEONG_GUN("홍성군", 34, 8),
     TAEAN_GUN("태안군", 34, 9),
+    GYERYONG_SI("계룡시", 34, 10),
+    BOREONG_SI("보령시", 34, 11),
 
     // 전라북도 (areaCode: 35)
     JEONJU_SI("전주시", 35, 1),
@@ -103,6 +110,7 @@ public enum City {
     GWANGYANG_SI("광양시", 36, 4),
     HAENAM_GUN("해남군", 36, 5),
     JANGHEUNG_GUN("장흥군", 36, 6),
+    NAJU_SI("나주시", 36, 7),
 
     // 경상북도 (areaCode: 37)
     POHANG_SI("포항시", 37, 1),
@@ -125,6 +133,7 @@ public enum City {
     GEOJE_SI("거제시", 38, 6),
     SACHEON_SI("사천시", 38, 7),
     NAMHAE_GUN("남해군", 38, 8),
+    TONGYEONG_SI("통영시", 38, 9),
 
     // 대전광역시
     DAEJEON_DONG_GU("동구", 3, 1),
