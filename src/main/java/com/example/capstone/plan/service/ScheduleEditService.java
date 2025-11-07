@@ -37,7 +37,7 @@ public class ScheduleEditService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            throw new RuntimeException("일정 수정 중 오류 발생: " + e.getMessage(), e);
         }
     }
 
@@ -91,7 +91,7 @@ public class ScheduleEditService {
                     .hashtag(hashtag)
                     .type(node.path("type").asText(null))
                     .estimatedCost(node.path("estimatedCost").asInt(0))
-                    .walkTime(walkTime)         // ← FromPrevious 대신 직접 세팅
+                    .walkTime(walkTime)
                     .driveTime(driveTime)
                     .transitTime(transitTime)
                     .lat(currLat)
@@ -99,7 +99,7 @@ public class ScheduleEditService {
                     .build();
 
             result.add(place);
-            prev = place; // 다음 항목 계산을 위해 업데이트
+            prev = place;
         }
         return result;
     }

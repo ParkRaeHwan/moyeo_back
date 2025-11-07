@@ -26,6 +26,7 @@ public class ScheduleController {
     private final PlaceDetailService placeDetailService;
     private final ScheduleDeleteService scheduleDeleteService;
     private final ScheduleQueryService scheduleQueryService;
+    private final ScheduleResaveService scheduleResaveService;
 
 
 
@@ -60,13 +61,16 @@ public class ScheduleController {
         ScheduleSaveResDto response = scheduleSaveService.saveSchedule(request, userDetails);
         return ResponseEntity.ok(response);
     }
+    @Operation(summary = "기존 일정 덮어쓰기 저장", description = "수정된 여행 일정을 기존 일정 ID에 덮어씁니다.")
+    @PostMapping("/resave/{scheduleId}")
+    public ResponseEntity<ScheduleSaveResDto> resaveDay(
+            @PathVariable Long scheduleId,
+            @RequestBody ScheduleResaveReqDto request,
+            @AuthenticationPrincipal CustomOAuth2User userDetails) {
 
-   /* @Operation(summary = "기존 일정을 제외한 일정 재생성", description = "create로 받은 일정에서 장소들을 제외하고 새로운 일정을 생성합니다.")
-    @PostMapping("/recreate")
-    public ResponseEntity<FullScheduleResDto> regenerate(@RequestBody ScheduleRecreateReqDto request) {
-        FullScheduleResDto response = scheduleRecreateService.recreateSchedule(request);
+        ScheduleSaveResDto response = scheduleResaveService.resaveDayPlaces(scheduleId, request, userDetails);
         return ResponseEntity.ok(response);
-    }*/
+    }
 
 
     @Operation(summary = "일정 수정", description = "수정된 장소 리스트를 기반으로 하루 일정을 리빌딩합니다.")
